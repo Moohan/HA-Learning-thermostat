@@ -16,3 +16,7 @@ This is a custom component for Home Assistant that creates a "smart" learning th
 1.  Copy the `custom_components/learning_thermostat` directory to your Home Assistant `custom_components` directory.
 2.  Restart Home Assistant.
 3.  The "Learning Thermostat" integration will now be available to add in the integrations page.
+
+## AI Disclaimer
+
+This project was vibe coded with the assistance of Google Jules / Google Gemini.
