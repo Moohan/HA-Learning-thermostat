@@ -1,4 +1,5 @@
 """Data collector for the Learning Thermostat integration."""
+
 import logging
 import os
 import csv
@@ -28,8 +29,10 @@ class DataCollector:
         self._climate_entity_id = climate_entity_id
         self._sensor_entity_ids = sensor_entity_ids
         self._storage_path = storage_path
-        
-        self._feature_names = [sanitize_entity_id_for_feature(eid) for eid in self._sensor_entity_ids]
+
+        self._feature_names = [
+            sanitize_entity_id_for_feature(eid) for eid in self._sensor_entity_ids
+        ]
         self._fieldnames = ["timestamp"] + self._feature_names + ["target_temperature"]
         self._unsubscribe = None
 
@@ -40,14 +43,16 @@ class DataCollector:
         self._init_csv_file()
 
         self._unsubscribe = async_track_state_change_event(
-            self.hass, [self._climate_entity_id], self._async_handle_initial_learning_state_change
+            self.hass,
+            [self._climate_entity_id],
+            self._async_handle_initial_learning_state_change,
         )
 
     def _init_csv_file(self):
         """Initialize the CSV file with a header if it doesn't exist."""
         if not os.path.exists(self._storage_path):
             try:
-                with open(self._storage_path, mode='w', newline='') as csvfile:
+                with open(self._storage_path, mode="w", newline="") as csvfile:
                     writer = csv.DictWriter(csvfile, fieldnames=self._fieldnames)
                     writer.writeheader()
             except IOError as e:
@@ -89,7 +94,7 @@ class DataCollector:
     def _write_to_csv(self, data_row):
         """Write a row of data to the CSV file."""
         try:
-            with open(self._storage_path, mode='a', newline='') as csvfile:
+            with open(self._storage_path, mode="a", newline="") as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=self._fieldnames)
                 writer.writerow(data_row)
         except IOError as e:

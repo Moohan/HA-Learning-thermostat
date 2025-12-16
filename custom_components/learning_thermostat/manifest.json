@@ -1,0 +1,14 @@
+{
+  "domain": "learning_thermostat",
+  "name": "Learning Thermostat",
+  "version": "0.1.0",
+  "documentation": "https://github.com/Moohan/HA-Learning-thermostat",
+  "codeowners": ["@Moohan"],
+  "requirements": [
+    "joblib>=1.3.0,<2.0.0",
+    "pandas>=2.1.0,<3.0.0",
+    "numpy>=1.25.0,<2.0.0",
+    "scikit-learn>=1.3.0,<2.0.0"
+  ],
+  "iot_class": "local_polling"
+}

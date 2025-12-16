@@ -1,4 +1,5 @@
 """Machine Learning core for the Learning Thermostat integration."""
+
 import logging
 import os
 import joblib
@@ -13,6 +14,7 @@ from datetime import datetime
 from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
+
 
 class MLCore:
     """Manages the machine learning model."""
@@ -61,34 +63,41 @@ class MLCore:
             return False
 
         # --- Feature Engineering ---
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
-        
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+
         # Cyclical time feature
-        seconds_from_midnight = df['timestamp'].dt.hour * 3600 + df['timestamp'].dt.minute * 60 + df['timestamp'].dt.second
+        seconds_from_midnight = (
+            df["timestamp"].dt.hour * 3600
+            + df["timestamp"].dt.minute * 60
+            + df["timestamp"].dt.second
+        )
         seconds_in_day = 24 * 60 * 60
-        df['time_sin'] = np.sin(2 * np.pi * seconds_from_midnight / seconds_in_day)
-        df['time_cos'] = np.cos(2 * np.pi * seconds_from_midnight / seconds_in_day)
-        
-        df['day_of_week'] = df['timestamp'].dt.dayofweek
-        df = df.drop('timestamp', axis=1)
+        df["time_sin"] = np.sin(2 * np.pi * seconds_from_midnight / seconds_in_day)
+        df["time_cos"] = np.cos(2 * np.pi * seconds_from_midnight / seconds_in_day)
 
-        y = df['target_temperature']
-        X = df.drop('target_temperature', axis=1)
+        df["day_of_week"] = df["timestamp"].dt.dayofweek
+        df = df.drop("timestamp", axis=1)
 
-        categorical_features = X.select_dtypes(include=['object', 'category']).columns
-        numerical_features = X.select_dtypes(include=['number']).columns
+        y = df["target_temperature"]
+        X = df.drop("target_temperature", axis=1)
+
+        categorical_features = X.select_dtypes(include=["object", "category"]).columns
+        numerical_features = X.select_dtypes(include=["number"]).columns
 
         # --- Model Pipeline ---
         preprocessor = ColumnTransformer(
             transformers=[
-                ('num', 'passthrough', numerical_features),
-                ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
-            ])
+                ("num", "passthrough", numerical_features),
+                ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_features),
+            ]
+        )
 
-        self.model = Pipeline(steps=[
-            ('preprocessor', preprocessor),
-            ('regressor', RandomForestRegressor(n_estimators=100, random_state=42))
-        ])
+        self.model = Pipeline(
+            steps=[
+                ("preprocessor", preprocessor),
+                ("regressor", RandomForestRegressor(n_estimators=100, random_state=42)),
+            ]
+        )
 
         self.model.fit(X, y)
         _LOGGER.info("Model training completed successfully.")
@@ -107,21 +116,23 @@ class MLCore:
         if not self.is_trained or self.model is None:
             _LOGGER.warning("Prediction requested, but model is not trained.")
             return None
-        
-        return await self.hass.async_add_executor_job(self._predict_temperature_sync, sensor_data)
+
+        return await self.hass.async_add_executor_job(
+            self._predict_temperature_sync, sensor_data
+        )
 
     def _predict_temperature_sync(self, sensor_data: dict):
         """Synchronous method for CPU-bound prediction."""
         try:
             df = pd.DataFrame([sensor_data])
-            
+
             # --- Feature Engineering (must match training) ---
             now = datetime.now()
             seconds_from_midnight = now.hour * 3600 + now.minute * 60 + now.second
             seconds_in_day = 24 * 60 * 60
-            df['time_sin'] = np.sin(2 * np.pi * seconds_from_midnight / seconds_in_day)
-            df['time_cos'] = np.cos(2 * np.pi * seconds_from_midnight / seconds_in_day)
-            df['day_of_week'] = now.dayofweek
+            df["time_sin"] = np.sin(2 * np.pi * seconds_from_midnight / seconds_in_day)
+            df["time_cos"] = np.cos(2 * np.pi * seconds_from_midnight / seconds_in_day)
+            df["day_of_week"] = now.dayofweek
 
             prediction = self.model.predict(df)
             _LOGGER.info("Predicted temperature: %s", prediction[0])
