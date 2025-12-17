@@ -1,5 +1,4 @@
 """The Learning Thermostat custom component."""
-
 import logging
 import asyncio
 
@@ -33,7 +32,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # --- Find all sensor entities from the selected areas ---
     entity_registry = async_get_entity_registry(hass)
     device_registry = async_get_device_registry(hass)
-
+    
     sensor_entities = set(entry.data.get("include_entities", []))
     area_ids = entry.data.get("areas", [])
 
@@ -44,10 +43,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if device.area_id == area_id
         ]
         for entity in entity_registry.entities.values():
-            if entity.device_id in devices_in_area and entity.domain in [
-                "sensor",
-                "binary_sensor",
-            ]:
+            if (
+                entity.device_id in devices_in_area
+                and entity.domain in ["sensor", "binary_sensor"]
+            ):
                 sensor_entities.add(entity.entity_id)
 
     sensor_entities = list(sensor_entities)

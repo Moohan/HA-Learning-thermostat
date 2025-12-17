@@ -1,5 +1,4 @@
 """Data collector for the Learning Thermostat integration."""
-
 import logging
 import os
 import csv
@@ -43,9 +42,7 @@ class DataCollector:
         self._init_csv_file()
 
         self._unsubscribe = async_track_state_change_event(
-            self.hass,
-            [self._climate_entity_id],
-            self._async_handle_initial_learning_state_change,
+            self.hass, [self._climate_entity_id], self._async_handle_initial_learning_state_change
         )
 
     def _init_csv_file(self):

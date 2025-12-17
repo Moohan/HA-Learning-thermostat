@@ -1,5 +1,4 @@
 """Climate platform for the Learning Thermostat integration."""
-
 import logging
 from datetime import datetime, timedelta
 
@@ -162,7 +161,7 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
     @property
     def supported_features(self):
         return SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE
-
+        
     @property
     def hvac_mode(self):
         return self._hvac_mode
@@ -211,9 +210,7 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
 
         _LOGGER.info(
             "%s: Manual override to %s°C until %s",
-            self.name,
-            temperature,
-            self._override_end_time,
+            self.name, temperature, self._override_end_time
         )
 
         # Continuous Learning: record this manual adjustment
@@ -275,7 +272,7 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
             await self._async_set_target_climate_temp(self._target_temperature)
         else:
             _LOGGER.warning("%s: Failed to get a prediction.", self.name)
-
+        
         self.async_write_ha_state()
 
     async def _async_set_target_climate_temp(self, temperature):
