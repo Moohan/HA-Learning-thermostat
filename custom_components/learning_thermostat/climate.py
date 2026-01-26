@@ -18,7 +18,10 @@ from homeassistant.const import (
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
 )
-from homeassistant.helpers.event import async_track_time_interval, async_track_state_change_event
+from homeassistant.helpers.event import (
+    async_track_time_interval,
+    async_track_state_change_event,
+)
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import DOMAIN
@@ -108,12 +111,16 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         if last_state:
             self._target_temperature = last_state.attributes.get(ATTR_TEMPERATURE, 21.0)
             self._hvac_mode = last_state.state or HVAC_MODE_OFF
-            self._preset_mode = last_state.attributes.get("preset_mode", PRESET_LEARNING_CONTROLLING)
+            self._preset_mode = last_state.attributes.get(
+                "preset_mode", PRESET_LEARNING_CONTROLLING
+            )
 
         self._state_listener = async_track_state_change_event(
-            self.hass, [self._target_climate_entity], self._async_target_climate_state_listener
+            self.hass,
+            [self._target_climate_entity],
+            self._async_target_climate_state_listener,
         )
-        
+
         target_state = self.hass.states.get(self._target_climate_entity)
         if target_state:
             self._update_target_state(target_state)
