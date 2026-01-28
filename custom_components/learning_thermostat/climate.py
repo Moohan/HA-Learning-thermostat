@@ -104,7 +104,10 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         last_state = await self.async_get_last_state()
         if last_state:
             self._target_temperature = last_state.attributes.get(ATTR_TEMPERATURE, 21.0)
-            self._hvac_mode = last_state.state or HVACMode.OFF
+            try:
+                self._hvac_mode = HVACMode(last_state.state) or HVACMode.OFF
+            except ValueError:
+                self._hvac_mode = HVACMode.OFF
             self._preset_mode = last_state.attributes.get(
                 "preset_mode", PRESET_LEARNING_CONTROLLING
             )
