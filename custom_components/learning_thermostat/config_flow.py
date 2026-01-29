@@ -3,9 +3,7 @@ import logging
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.core import callback
 from homeassistant.helpers import selector
-from homeassistant.helpers.area_registry import async_get as async_get_area_registry
 
 from .const import DOMAIN
 
@@ -45,8 +43,6 @@ class LearningThermostatConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.data["include_entities"] = user_input.get("include_entities", [])
             return await self.async_step_params()
 
-        area_registry = async_get_area_registry(self.hass)
-        
         return self.async_show_form(
             step_id="areas",
             data_schema=vol.Schema(
