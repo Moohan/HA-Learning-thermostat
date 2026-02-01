@@ -64,17 +64,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     ml_core = MLCore(hass, data_path, model_path)
     # Trigger initial training in the background
-    hass.async_create_task(ml_core.async_train_model())
+    hass.async_create_background_task(
+        ml_core.async_train_model(), "learning_thermostat_model_training"
+    )
 
     hass.data[DOMAIN][entry.entry_id]["data_collector"] = data_collector
     hass.data[DOMAIN][entry.entry_id]["ml_core"] = ml_core
 
     # --- Set up the climate platform ---
     # The data collector is passed via hass.data
-    for component in PLATFORMS:
-        hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(entry, component)
-        )
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
 
