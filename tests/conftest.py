@@ -5,6 +5,12 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.learning_thermostat.const import DOMAIN
 
 
+@pytest.fixture(autouse=True)
+def auto_enable_custom_integrations(enable_custom_integrations):
+    """Enable custom integrations."""
+    yield
+
+
 @pytest.fixture
 def mock_config_entry() -> MockConfigEntry:
     """Return the default mocked config entry."""
@@ -18,4 +24,5 @@ def mock_config_entry() -> MockConfigEntry:
             "override_duration": 60,
         },
         title="Learning Thermostat",
+        unique_id="learning_thermostat_test",
     )
