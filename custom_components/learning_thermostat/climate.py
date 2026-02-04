@@ -108,10 +108,15 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         last_state = await self.async_get_last_state()
         if last_state:
             self._target_temperature = last_state.attributes.get(ATTR_TEMPERATURE, 21.0)
-            try:
-                self._hvac_mode = HVACMode(last_state.state)
-            except ValueError:
-                self._hvac_mode = HVACMode.OFF
+            if last_state.state:
+                try:
+                    hvac_mode = HVACMode(last_state.state)
+                    if hvac_mode in HVAC_MODES:
+                        self._hvac_mode = hvac_mode
+                    else:
+                        self._hvac_mode = HVACMode.OFF
+                except ValueError:
+                    self._hvac_mode = HVACMode.OFF
             self._preset_mode = last_state.attributes.get(
                 "preset_mode", PRESET_LEARNING_CONTROLLING
             )
@@ -149,42 +154,52 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
 
     @property
     def name(self):
+        """Return the name of the thermostat."""
         return self._name
 
     @property
     def unique_id(self):
+        """Return a unique ID."""
         return f"learning_thermostat_{self._name.lower().replace(' ', '_')}"
 
     @property
     def temperature_unit(self):
+        """Return the unit of measurement."""
         return UnitOfTemperature.CELSIUS
 
     @property
     def supported_features(self):
+        """Return the list of supported features."""
         return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
-        
+
     @property
     def hvac_mode(self):
+        """Return current operation."""
         return self._hvac_mode
 
     @property
     def hvac_modes(self):
+        """Return the list of available operation modes."""
         return HVAC_MODES
 
     @property
     def preset_mode(self):
+        """Return the current preset mode."""
         return self._preset_mode if self._hvac_mode == HVACMode.AUTO else None
 
     @property
     def preset_modes(self):
+        """Return a list of available preset modes."""
         return PRESETS if self._hvac_mode == HVACMode.AUTO else None
 
     @property
     def target_temperature(self):
+        """Return the temperature we try to reach."""
         return self._target_temperature
 
     @property
     def current_temperature(self):
+        """Return the current temperature."""
         return self._current_temperature
 
     @property
