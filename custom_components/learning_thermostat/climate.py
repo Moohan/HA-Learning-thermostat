@@ -5,18 +5,16 @@ from datetime import datetime, timedelta
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.components.climate import ClimateEntity
-from homeassistant.components.climate.const import (
-    HVAC_MODE_OFF,
-    HVAC_MODE_AUTO,
-    SUPPORT_TARGET_TEMPERATURE,
-    SUPPORT_PRESET_MODE,
+from homeassistant.components.climate import (
+    ClimateEntity,
+    ClimateEntityFeature,
+    HVACMode,
 )
 from homeassistant.const import (
     ATTR_TEMPERATURE,
-    TEMP_CELSIUS,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
+    UnitOfTemperature,
 )
 from homeassistant.helpers.event import (
     async_track_time_interval,
@@ -32,7 +30,7 @@ from .utils import sanitize_entity_id_for_feature
 _LOGGER = logging.getLogger(__name__)
 
 # Simplified HVAC modes
-HVAC_MODES = [HVAC_MODE_OFF, HVAC_MODE_AUTO]
+HVAC_MODES = [HVACMode.OFF, HVACMode.AUTO]
 # Presets define the sub-mode of AUTO
 PRESET_CONTROLLING = "Controlling"
 PRESET_LEARNING_CONTROLLING = "Learning & Controlling"
@@ -95,7 +93,7 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
 
         self._target_temperature = 21.0
         self._current_temperature = None
-        self._hvac_mode = HVAC_MODE_OFF  # Default to OFF
+        self._hvac_mode = HVACMode.OFF  # Default to OFF
         self._preset_mode = PRESET_LEARNING_CONTROLLING
 
         self._is_override_active = False
@@ -110,7 +108,10 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         last_state = await self.async_get_last_state()
         if last_state:
             self._target_temperature = last_state.attributes.get(ATTR_TEMPERATURE, 21.0)
-            self._hvac_mode = last_state.state or HVAC_MODE_OFF
+            try:
+                self._hvac_mode = HVACMode(last_state.state)
+            except ValueError:
+                self._hvac_mode = HVACMode.OFF
             self._preset_mode = last_state.attributes.get(
                 "preset_mode", PRESET_LEARNING_CONTROLLING
             )
@@ -156,11 +157,11 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
 
     @property
     def temperature_unit(self):
-        return TEMP_CELSIUS
+        return UnitOfTemperature.CELSIUS
 
     @property
     def supported_features(self):
-        return SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE
+        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
         
     @property
     def hvac_mode(self):
@@ -172,11 +173,11 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
 
     @property
     def preset_mode(self):
-        return self._preset_mode if self._hvac_mode == HVAC_MODE_AUTO else None
+        return self._preset_mode if self._hvac_mode == HVACMode.AUTO else None
 
     @property
     def preset_modes(self):
-        return PRESETS if self._hvac_mode == HVAC_MODE_AUTO else None
+        return PRESETS if self._hvac_mode == HVACMode.AUTO else None
 
     @property
     def target_temperature(self):
@@ -241,14 +242,14 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
             self._prediction_task()
             self._prediction_task = None
 
-        if self._hvac_mode == HVAC_MODE_AUTO:
+        if self._hvac_mode == HVACMode.AUTO:
             self._prediction_task = async_track_time_interval(
                 self.hass, self._async_prediction_loop, SCAN_INTERVAL
             )
 
     async def _async_prediction_loop(self, now=None):
         """The main loop that gets predictions and sets the temperature."""
-        if self._hvac_mode != HVAC_MODE_AUTO or not self._ml_core.is_trained:
+        if self._hvac_mode != HVACMode.AUTO or not self._ml_core.is_trained:
             return
 
         if self._is_override_active:
