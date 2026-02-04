@@ -1,6 +1,5 @@
 """The Learning Thermostat custom component."""
 import logging
-import asyncio
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
@@ -64,17 +63,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     ml_core = MLCore(hass, data_path, model_path)
     # Trigger initial training in the background
-    hass.async_create_task(ml_core.async_train_model())
+    hass.async_create_background_task(ml_core.async_train_model(), "ml_training")
 
     hass.data[DOMAIN][entry.entry_id]["data_collector"] = data_collector
     hass.data[DOMAIN][entry.entry_id]["ml_core"] = ml_core
 
     # --- Set up the climate platform ---
     # The data collector is passed via hass.data
-    for component in PLATFORMS:
-        hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(entry, component)
-        )
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
 
@@ -89,14 +85,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         data_collector.stop()
 
     # Forward the unload to the platform
-    unload_ok = all(
-        await asyncio.gather(
-            *[
-                hass.config_entries.async_forward_entry_unload(entry, component)
-                for component in PLATFORMS
-            ]
-        )
-    )
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
