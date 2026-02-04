@@ -1,6 +1,5 @@
 """The Learning Thermostat custom component."""
 import logging
-import asyncio
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
