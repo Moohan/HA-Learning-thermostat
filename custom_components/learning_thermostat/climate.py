@@ -1,6 +1,6 @@
 """Climate platform for the Learning Thermostat integration."""
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -21,6 +21,7 @@ from homeassistant.helpers.event import (
     async_track_state_change_event,
 )
 from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .data_collector import DataCollector
@@ -58,6 +59,7 @@ async def async_setup_entry(
         [
             LearningThermostat(
                 hass,
+                entry.entry_id,
                 name,
                 target_climate_entity,
                 sensor_entities,
@@ -75,6 +77,7 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
     def __init__(
         self,
         hass: HomeAssistant,
+        entry_id: str,
         name: str,
         target_climate_entity: str,
         sensor_entities: list[str],
@@ -84,6 +87,7 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
     ):
         """Initialize the thermostat."""
         self.hass = hass
+        self._entry_id = entry_id
         self._name = name
         self._target_climate_entity = target_climate_entity
         self._sensor_entities = sensor_entities
@@ -160,7 +164,7 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
     @property
     def unique_id(self):
         """Return a unique ID."""
-        return f"learning_thermostat_{self._name.lower().replace(' ', '_')}"
+        return f"{self._entry_id}_climate"
 
     @property
     def temperature_unit(self):
@@ -222,7 +226,7 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
 
         self._target_temperature = temperature
         self._is_override_active = True
-        self._override_end_time = datetime.now() + self._override_duration
+        self._override_end_time = dt_util.now() + self._override_duration
 
         _LOGGER.info(
             "%s: Manual override to %s°C until %s",
@@ -268,7 +272,7 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
             return
 
         if self._is_override_active:
-            if datetime.now() < self._override_end_time:
+            if dt_util.now() < self._override_end_time:
                 return
             else:
                 _LOGGER.info("%s: Manual override has ended.", self.name)
