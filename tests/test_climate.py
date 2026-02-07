@@ -3,8 +3,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.learning_thermostat.const import DOMAIN
-
 
 async def test_climate_unique_id(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
     """Test that the climate entity has a stable unique ID based on entry ID."""
