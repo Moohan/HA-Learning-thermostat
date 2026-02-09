@@ -126,7 +126,7 @@ class MLCore:
             df = pd.DataFrame([sensor_data])
             
             # --- Feature Engineering (must match training) ---
-            now = dt_util.now()
+            now = dt_util.utcnow()
             seconds_from_midnight = now.hour * 3600 + now.minute * 60 + now.second
             seconds_in_day = 24 * 60 * 60
             df['time_sin'] = np.sin(2 * np.pi * seconds_from_midnight / seconds_in_day)

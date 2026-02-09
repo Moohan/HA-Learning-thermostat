@@ -79,7 +79,7 @@ class DataCollector:
 
     async def async_collect_data_point(self, target_temperature):
         """Public method to collect and store a single data point from all sensors."""
-        data_row = {"timestamp": dt_util.now().isoformat()}
+        data_row = {"timestamp": dt_util.utcnow().isoformat()}
 
         for i, entity_id in enumerate(self._sensor_entity_ids):
             state = self.hass.states.get(entity_id)
