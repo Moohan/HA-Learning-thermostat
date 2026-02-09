@@ -100,8 +100,12 @@ class MLCore:
             ]
         )
 
-        self.model.fit(X, y)
-        _LOGGER.info("Model training completed successfully.")
+        try:
+            self.model.fit(X, y)
+            _LOGGER.info("Model training completed successfully.")
+        except Exception as e:
+            _LOGGER.error("Error during model training: %s", e)
+            return False
 
         try:
             joblib.dump(self.model, self._model_path)
