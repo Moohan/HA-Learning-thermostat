@@ -2,11 +2,11 @@
 import logging
 import os
 import csv
-from datetime import datetime
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.const import ATTR_TEMPERATURE
+from homeassistant.util import dt as dt_util
 
 from .utils import sanitize_entity_id_for_feature
 
@@ -73,11 +73,13 @@ class DataCollector:
                 self._climate_entity_id,
                 new_temp,
             )
-            self.hass.async_create_task(self.async_collect_data_point(new_temp))
+            self.hass.async_create_background_task(
+                self.async_collect_data_point(new_temp), "collect_data_point"
+            )
 
     async def async_collect_data_point(self, target_temperature):
         """Public method to collect and store a single data point from all sensors."""
-        data_row = {"timestamp": datetime.now().isoformat()}
+        data_row = {"timestamp": dt_util.utcnow().isoformat()}
 
         for i, entity_id in enumerate(self._sensor_entity_ids):
             state = self.hass.states.get(entity_id)
