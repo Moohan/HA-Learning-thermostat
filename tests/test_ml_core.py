@@ -2,8 +2,6 @@
 import pytest
 from unittest.mock import MagicMock
 from custom_components.learning_thermostat.ml_core import MLCore
-import pandas as pd
-import numpy as np
 
 @pytest.mark.asyncio
 async def test_predict_temperature_attribute_error(hass):
