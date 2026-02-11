@@ -64,7 +64,10 @@ class MLCore:
             return False
 
         # --- Feature Engineering ---
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        # Convert UTC timestamps to local time for schedule alignment
+        df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True).dt.tz_convert(
+            self.hass.config.time_zone
+        )
 
         # Cyclical time feature
         seconds_from_midnight = (
@@ -130,7 +133,8 @@ class MLCore:
             df = pd.DataFrame([sensor_data])
             
             # --- Feature Engineering (must match training) ---
-            now = dt_util.utcnow()
+            # Use local time for feature extraction to align with user schedules
+            now = dt_util.now()
             seconds_from_midnight = now.hour * 3600 + now.minute * 60 + now.second
             seconds_in_day = 24 * 60 * 60
             df['time_sin'] = np.sin(2 * np.pi * seconds_from_midnight / seconds_in_day)
