@@ -8,9 +8,9 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from datetime import datetime
 
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,7 +24,10 @@ class MLCore:
         self._model_path = model_path
         self.model = None
         self.is_trained = False
-        self._load_model()
+
+    async def async_initialize(self):
+        """Perform async initialization of the ML core."""
+        await self.hass.async_add_executor_job(self._load_model)
 
     def _load_model(self):
         """Load the trained model from a file."""
@@ -61,7 +64,10 @@ class MLCore:
             return False
 
         # --- Feature Engineering ---
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        # Convert UTC timestamps to local time for schedule alignment
+        df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True).dt.tz_convert(
+            self.hass.config.time_zone
+        )
 
         # Cyclical time feature
         seconds_from_midnight = (
@@ -97,8 +103,12 @@ class MLCore:
             ]
         )
 
-        self.model.fit(X, y)
-        _LOGGER.info("Model training completed successfully.")
+        try:
+            self.model.fit(X, y)
+            _LOGGER.info("Model training completed successfully.")
+        except Exception as e:
+            _LOGGER.error("Error during model training: %s", e)
+            return False
 
         try:
             joblib.dump(self.model, self._model_path)
@@ -123,12 +133,13 @@ class MLCore:
             df = pd.DataFrame([sensor_data])
             
             # --- Feature Engineering (must match training) ---
-            now = datetime.now()
+            # Use local time for feature extraction to align with user schedules
+            now = dt_util.now()
             seconds_from_midnight = now.hour * 3600 + now.minute * 60 + now.second
             seconds_in_day = 24 * 60 * 60
             df['time_sin'] = np.sin(2 * np.pi * seconds_from_midnight / seconds_in_day)
             df['time_cos'] = np.cos(2 * np.pi * seconds_from_midnight / seconds_in_day)
-            df['day_of_week'] = now.dayofweek
+            df['day_of_week'] = now.weekday()
 
             prediction = self.model.predict(df)
             _LOGGER.info("Predicted temperature: %s", prediction[0])

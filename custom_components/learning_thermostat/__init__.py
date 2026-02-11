@@ -62,6 +62,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await data_collector.async_setup()
 
     ml_core = MLCore(hass, data_path, model_path)
+    await ml_core.async_initialize()
     # Trigger initial training in the background
     hass.async_create_background_task(ml_core.async_train_model(), "ml_training")
 
