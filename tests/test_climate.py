@@ -18,6 +18,7 @@ def patched_integration():
         mock_data_collector.return_value.async_setup = AsyncMock()
         mock_ml_core.return_value.async_initialize = AsyncMock()
         mock_ml_core.return_value.async_train_model = AsyncMock()
+        mock_ml_core.return_value.is_trained = False
         yield
 
 

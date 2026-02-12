@@ -11,6 +11,7 @@ from homeassistant.helpers.entity_registry import async_get as async_get_entity_
 
 from .data_collector import DataCollector
 from .ml_core import MLCore
+from .utils import get_entry_config
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,12 +31,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry[LearningTher
     """Set up Learning Thermostat from a config entry."""
     _LOGGER.info("Setting up Learning Thermostat entry: %s", entry.title)
 
+    hass.data[DOMAIN][entry.entry_id] = {}
+
+    # Merged configuration
+    config = get_entry_config(entry)
+
     # --- Find all sensor entities from the selected areas ---
     entity_registry = async_get_entity_registry(hass)
     device_registry = async_get_device_registry(hass)
     
-    sensor_entities = set(entry.data.get("include_entities", []))
-    area_ids = entry.data.get("areas", [])
+    sensor_entities = set(config.get("include_entities", []))
+    area_ids = config.get("areas", [])
 
     for area_id in area_ids:
         devices_in_area = [
@@ -58,7 +64,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry[LearningTher
     model_path = hass.config.path(f"learning_thermostat_{entry.entry_id}.joblib")
 
     data_collector = DataCollector(
-        hass, entry.data["target_climate_entity"], sensor_entities, data_path
+        hass, config["target_climate_entity"], sensor_entities, data_path
     )
     await data_collector.async_setup()
 
@@ -76,10 +82,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry[LearningTher
     # --- Set up the climate platform ---
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    # Add update listener
+    entry.async_on_unload(entry.add_update_listener(async_update_listener))
+
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry[LearningThermostatData]) -> bool:
+async def async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle options update."""
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     _LOGGER.info("Unloading Learning Thermostat entry: %s", entry.title)
 

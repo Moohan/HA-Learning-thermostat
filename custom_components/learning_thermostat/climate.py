@@ -30,7 +30,9 @@ from homeassistant.helpers.restore_state import RestoreEntity
 if TYPE_CHECKING:
     from . import LearningThermostatData
 from .const import DOMAIN
-from .utils import sanitize_entity_id_for_feature
+from .data_collector import DataCollector
+from .ml_core import MLCore
+from .utils import sanitize_entity_id_for_feature, get_entry_config
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,7 +54,7 @@ async def async_setup_entry(
     """Set up the Learning Thermostat climate platform."""
     data = entry.runtime_data
 
-    config = entry.data
+    config = get_entry_config(entry)
     name = config.get("name", "Learning Thermostat")
     target_climate_entity = config["target_climate_entity"]
     override_duration = timedelta(minutes=config.get("override_duration", 60))
@@ -167,6 +169,36 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         self._update_target_state(event.data.get("new_state"))
 
     @property
+    def name(self):
+        """Return the name of the thermostat."""
+        return self._name
+
+    @property
+    def unique_id(self):
+        """Return a unique ID."""
+        return self._entry_id
+
+    @property
+    def temperature_unit(self):
+        """Return the unit of measurement."""
+        return UnitOfTemperature.CELSIUS
+
+    @property
+    def supported_features(self):
+        """Return the list of supported features."""
+        return (
+            ClimateEntityFeature.TARGET_TEMPERATURE
+            | ClimateEntityFeature.PRESET_MODE
+            | ClimateEntityFeature.TURN_ON
+            | ClimateEntityFeature.TURN_OFF
+        )
+
+    @property
+    def hvac_mode(self):
+        """Return current operation."""
+        return self._hvac_mode
+
+    @property
     def hvac_modes(self):
         """Return the list of available operation modes."""
         return HVAC_MODES
@@ -221,6 +253,14 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         self._attr_hvac_mode = hvac_mode
         await self._async_update_prediction_task()
         self.async_write_ha_state()
+
+    async def async_turn_on(self) -> None:
+        """Turn the thermostat on."""
+        await self.async_set_hvac_mode(HVACMode.AUTO)
+
+    async def async_turn_off(self) -> None:
+        """Turn the thermostat off."""
+        await self.async_set_hvac_mode(HVACMode.OFF)
 
     async def async_set_preset_mode(self, preset_mode: str):
         """Set new preset mode."""
