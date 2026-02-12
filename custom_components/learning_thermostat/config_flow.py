@@ -27,7 +27,7 @@ def get_basic_schema(defaults: dict[str, Any] | None = None, include_advanced_to
         ),
     }
 
-    if defaults.get(CONF_NAME):
+    if defaults.get(CONF_NAME) is not None:
         data_schema[vol.Optional(CONF_NAME, default=defaults.get(CONF_NAME))] = selector.TextSelector()
     else:
         data_schema[vol.Optional(CONF_NAME)] = selector.TextSelector()

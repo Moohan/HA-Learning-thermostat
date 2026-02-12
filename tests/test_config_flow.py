@@ -1,4 +1,5 @@
 """Test the Learning Thermostat config flow."""
+from voluptuous import Undefined
 from homeassistant import config_entries, data_entry_flow
 from homeassistant.core import HomeAssistant
 from custom_components.learning_thermostat.const import DOMAIN
@@ -150,7 +151,6 @@ async def test_options_flow(hass: HomeAssistant) -> None:
     def get_default(schema_dict, key_name):
         for key in schema_dict:
             if key == key_name or (hasattr(key, "schema") and key.schema == key_name):
-                from voluptuous import Undefined
                 default = key.default
                 if default is Undefined:
                     return None

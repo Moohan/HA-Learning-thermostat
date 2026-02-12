@@ -252,6 +252,14 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         await self._async_update_prediction_task()
         self.async_write_ha_state()
 
+    async def async_turn_on(self) -> None:
+        """Turn the thermostat on."""
+        await self.async_set_hvac_mode(HVACMode.AUTO)
+
+    async def async_turn_off(self) -> None:
+        """Turn the thermostat off."""
+        await self.async_set_hvac_mode(HVACMode.OFF)
+
     async def async_set_preset_mode(self, preset_mode: str):
         """Set new preset mode."""
         if preset_mode not in PRESETS:
