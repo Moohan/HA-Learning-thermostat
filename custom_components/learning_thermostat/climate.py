@@ -50,7 +50,7 @@ async def async_setup_entry(
     ml_core = hass.data[DOMAIN][entry.entry_id]["ml_core"]
     sensor_entities = hass.data[DOMAIN][entry.entry_id]["sensor_entities"]
 
-    config = entry.data
+    config = {**entry.data, **entry.options}
     name = config.get("name", "Learning Thermostat")
     target_climate_entity = config["target_climate_entity"]
     override_duration = timedelta(minutes=config.get("override_duration", 60))
