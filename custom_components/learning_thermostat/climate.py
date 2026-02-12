@@ -26,7 +26,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from .const import DOMAIN
 from .data_collector import DataCollector
 from .ml_core import MLCore
-from .utils import sanitize_entity_id_for_feature
+from .utils import sanitize_entity_id_for_feature, get_entry_config
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ async def async_setup_entry(
     ml_core = hass.data[DOMAIN][entry.entry_id]["ml_core"]
     sensor_entities = hass.data[DOMAIN][entry.entry_id]["sensor_entities"]
 
-    config = entry.data
+    config = get_entry_config(entry)
     name = config.get("name", "Learning Thermostat")
     target_climate_entity = config["target_climate_entity"]
     override_duration = timedelta(minutes=config.get("override_duration", 60))
@@ -174,7 +174,12 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
     @property
     def supported_features(self):
         """Return the list of supported features."""
-        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
+        return (
+            ClimateEntityFeature.TARGET_TEMPERATURE
+            | ClimateEntityFeature.PRESET_MODE
+            | ClimateEntityFeature.TURN_ON
+            | ClimateEntityFeature.TURN_OFF
+        )
 
     @property
     def hvac_mode(self):
@@ -246,6 +251,14 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         self._hvac_mode = hvac_mode
         await self._async_update_prediction_task()
         self.async_write_ha_state()
+
+    async def async_turn_on(self) -> None:
+        """Turn the thermostat on."""
+        await self.async_set_hvac_mode(HVACMode.AUTO)
+
+    async def async_turn_off(self) -> None:
+        """Turn the thermostat off."""
+        await self.async_set_hvac_mode(HVACMode.OFF)
 
     async def async_set_preset_mode(self, preset_mode: str):
         """Set new preset mode."""

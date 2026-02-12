@@ -1,0 +1,39 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Learning Thermostat Setup",
+        "description": "Configure the basic settings for your learning thermostat.",
+        "data": {
+          "target_climate_entity": "Target Climate Entity",
+          "name": "Integration Name",
+          "advanced_options": "Configure advanced options"
+        }
+      },
+      "advanced": {
+        "title": "Advanced Options",
+        "description": "Configure additional sensors and settings for the learning model.",
+        "data": {
+          "areas": "Areas to monitor",
+          "include_entities": "Additional entities to monitor",
+          "override_duration": "Manual override duration (minutes)"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Settings",
+        "description": "Adjust the configuration for this learning thermostat.",
+        "data": {
+          "target_climate_entity": "Target Climate Entity",
+          "name": "Integration Name",
+          "areas": "Areas to monitor",
+          "include_entities": "Additional entities to monitor",
+          "override_duration": "Manual override duration (minutes)"
+        }
+      }
+    }
+  }
+}
