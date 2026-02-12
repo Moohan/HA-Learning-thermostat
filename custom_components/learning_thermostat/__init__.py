@@ -31,8 +31,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry[LearningTher
     """Set up Learning Thermostat from a config entry."""
     _LOGGER.info("Setting up Learning Thermostat entry: %s", entry.title)
 
-    hass.data[DOMAIN][entry.entry_id] = {}
-
     # Merged configuration
     config = get_entry_config(entry)
 
@@ -88,12 +86,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry[LearningTher
     return True
 
 
-async def async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def async_update_listener(hass: HomeAssistant, entry: ConfigEntry[LearningThermostatData]) -> None:
     """Handle options update."""
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry[LearningThermostatData]) -> bool:
     """Unload a config entry."""
     _LOGGER.info("Unloading Learning Thermostat entry: %s", entry.title)
 

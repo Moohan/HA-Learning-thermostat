@@ -30,8 +30,6 @@ from homeassistant.helpers.restore_state import RestoreEntity
 if TYPE_CHECKING:
     from . import LearningThermostatData
 from .const import DOMAIN
-from .data_collector import DataCollector
-from .ml_core import MLCore
 from .utils import sanitize_entity_id_for_feature, get_entry_config
 
 _LOGGER = logging.getLogger(__name__)
@@ -78,7 +76,10 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
 
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_supported_features = (
-        ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
+        ClimateEntityFeature.TARGET_TEMPERATURE
+        | ClimateEntityFeature.PRESET_MODE
+        | ClimateEntityFeature.TURN_ON
+        | ClimateEntityFeature.TURN_OFF
     )
 
     def __init__(
@@ -167,36 +168,6 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
     def _async_target_climate_state_listener(self, event):
         """Handle state changes for the target climate entity."""
         self._update_target_state(event.data.get("new_state"))
-
-    @property
-    def name(self):
-        """Return the name of the thermostat."""
-        return self._name
-
-    @property
-    def unique_id(self):
-        """Return a unique ID."""
-        return self._entry_id
-
-    @property
-    def temperature_unit(self):
-        """Return the unit of measurement."""
-        return UnitOfTemperature.CELSIUS
-
-    @property
-    def supported_features(self):
-        """Return the list of supported features."""
-        return (
-            ClimateEntityFeature.TARGET_TEMPERATURE
-            | ClimateEntityFeature.PRESET_MODE
-            | ClimateEntityFeature.TURN_ON
-            | ClimateEntityFeature.TURN_OFF
-        )
-
-    @property
-    def hvac_mode(self):
-        """Return current operation."""
-        return self._hvac_mode
 
     @property
     def hvac_modes(self):
