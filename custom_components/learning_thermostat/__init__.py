@@ -10,6 +10,7 @@ from homeassistant.helpers.entity_registry import async_get as async_get_entity_
 from .const import DOMAIN
 from .data_collector import DataCollector
 from .ml_core import MLCore
+from .utils import get_entry_config
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,8 +29,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data[DOMAIN][entry.entry_id] = {}
 
-    # Merge options and data
-    config = {**entry.data, **entry.options}
+    # Merged configuration
+    config = get_entry_config(entry)
 
     # --- Find all sensor entities from the selected areas ---
     entity_registry = async_get_entity_registry(hass)

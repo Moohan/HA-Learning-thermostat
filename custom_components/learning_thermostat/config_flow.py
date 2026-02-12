@@ -1,17 +1,19 @@
 """Config flow for Learning Thermostat."""
 import logging
+from typing import Any
 import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers import selector
 from homeassistant.const import CONF_NAME
+from homeassistant.data_entry_flow import FlowResult
 
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-def get_basic_schema(defaults=None):
+def get_basic_schema(defaults: dict[str, Any] | None = None, include_advanced_toggle: bool = True) -> vol.Schema:
     """Return the basic schema."""
     if defaults is None:
         defaults = {}
@@ -30,11 +32,12 @@ def get_basic_schema(defaults=None):
     else:
         data_schema[vol.Optional(CONF_NAME)] = selector.TextSelector()
 
-    data_schema[vol.Optional("advanced_options", default=False)] = selector.BooleanSelector()
+    if include_advanced_toggle:
+        data_schema[vol.Optional("advanced_options", default=False)] = selector.BooleanSelector()
 
     return vol.Schema(data_schema)
 
-def get_advanced_schema(defaults=None):
+def get_advanced_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
     """Return the advanced schema."""
     if defaults is None:
         defaults = {}
@@ -68,20 +71,40 @@ def get_advanced_schema(defaults=None):
         }
     )
 
+def get_options_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
+    """Return the combined schema for the options flow (single-step)."""
+    if defaults is None:
+        defaults = {}
+
+    basic_schema = get_basic_schema(defaults, include_advanced_toggle=False)
+    advanced_schema = get_advanced_schema(defaults)
+
+    # Merge underlying voluptuous schema mappings
+    merged: dict[Any, Any] = {}
+    merged.update(basic_schema.schema)
+    merged.update(advanced_schema.schema)
+
+    return vol.Schema(merged)
+
 
 class LearningThermostatConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Learning Thermostat."""
 
     VERSION = 1
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the config flow."""
-        self.data = {}
+        self.data: dict[str, Any] = {}
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the initial step."""
         if user_input is not None:
             self.data.update(user_input)
+
+            target = user_input["target_climate_entity"]
+            await self.async_set_unique_id(f"learning_thermostat:{target}")
+            self._abort_if_unique_id_configured()
+
             if user_input.get("advanced_options"):
                 return await self.async_step_advanced()
 
@@ -92,7 +115,7 @@ class LearningThermostatConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=get_basic_schema(),
         )
 
-    async def async_step_advanced(self, user_input=None):
+    async def async_step_advanced(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the advanced options step."""
         if user_input is not None:
             self.data.update(user_input)
@@ -103,7 +126,7 @@ class LearningThermostatConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=get_advanced_schema(self.data),
         )
 
-    def _create_entry(self):
+    def _create_entry(self) -> FlowResult:
         """Create the config entry."""
         # Remove the internal 'advanced_options' flag
         self.data.pop("advanced_options", None)
@@ -120,67 +143,28 @@ class LearningThermostatConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> config_entries.OptionsFlow:
         """Get the options flow for this handler."""
-        return LearningThermostatOptionsFlowHandler(config_entry)
+        return LearningThermostatOptionsFlowHandler()
 
 
 class LearningThermostatOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow for Learning Thermostat."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow."""
-        self.config_entry = config_entry
-
-    async def async_step_init(self, user_input=None):
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Manage the options."""
         if user_input is not None:
+            # Update the config entry title if CONF_NAME has changed
+            if CONF_NAME in user_input:
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry, title=user_input[CONF_NAME]
+                )
             return self.async_create_entry(title="", data=user_input)
 
         # Merge data and options for the default values
         current_config = {**self.config_entry.data, **self.config_entry.options}
 
-        full_schema = vol.Schema(
-            {
-                vol.Required(
-                    "target_climate_entity",
-                    default=current_config.get("target_climate_entity"),
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="climate"),
-                ),
-                vol.Optional(
-                    CONF_NAME,
-                    default=current_config.get(CONF_NAME),
-                ): selector.TextSelector(),
-                vol.Optional(
-                    "areas",
-                    default=current_config.get("areas", []),
-                ): selector.AreaSelector(
-                    selector.AreaSelectorConfig(multiple=True),
-                ),
-                vol.Optional(
-                    "include_entities",
-                    default=current_config.get("include_entities", []),
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(
-                        domain=["sensor", "binary_sensor"], multiple=True
-                    ),
-                ),
-                vol.Required(
-                    "override_duration",
-                    default=current_config.get("override_duration", 60),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=1,
-                        max=1440,
-                        unit_of_measurement="minutes",
-                        mode=selector.NumberSelectorMode.BOX,
-                    ),
-                ),
-            }
-        )
-
         return self.async_show_form(
             step_id="init",
-            data_schema=full_schema,
+            data_schema=get_options_schema(current_config),
         )
