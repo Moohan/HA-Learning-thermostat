@@ -3,8 +3,10 @@ from unittest.mock import patch, AsyncMock
 import pytest
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import entity_registry as er, device_registry as dr
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.learning_thermostat.const import DOMAIN
 
 
 @pytest.fixture
@@ -37,6 +39,28 @@ async def test_climate_unique_id(
     entity = entity_registry.async_get("climate.learning_thermostat")
     assert entity is not None
     assert entity.unique_id == mock_config_entry.entry_id
+
+
+async def test_climate_device_info(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry, patched_integration
+) -> None:
+    """Test that the climate entity has the correct device info."""
+    mock_config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    entity_registry = er.async_get(hass)
+    entity = entity_registry.async_get("climate.learning_thermostat")
+    assert entity is not None
+    assert entity.device_id is not None
+
+    device_registry = dr.async_get(hass)
+    device = device_registry.async_get(entity.device_id)
+    assert device is not None
+    assert device.identifiers == {(DOMAIN, mock_config_entry.entry_id)}
+    assert device.name == mock_config_entry.title
+    assert device.manufacturer == "Learning Thermostat Project"
+    assert device.model == "Smart Learning Thermostat"
 
 
 async def test_climate_unique_id_stability(
