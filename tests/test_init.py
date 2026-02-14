@@ -2,7 +2,6 @@
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.learning_thermostat.const import DOMAIN
 from custom_components.learning_thermostat import LearningThermostatData
 
 
