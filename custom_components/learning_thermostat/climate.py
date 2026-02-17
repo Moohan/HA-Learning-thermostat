@@ -5,7 +5,6 @@ from datetime import timedelta
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
@@ -23,7 +22,7 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import DOMAIN
+from . import LearningThermostatConfigEntry
 from .data_collector import DataCollector
 from .ml_core import MLCore
 from .utils import sanitize_entity_id_for_feature, get_entry_config
@@ -42,13 +41,13 @@ SCAN_INTERVAL = timedelta(minutes=5)
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: LearningThermostatConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Learning Thermostat climate platform."""
-    data_collector = hass.data[DOMAIN][entry.entry_id]["data_collector"]
-    ml_core = hass.data[DOMAIN][entry.entry_id]["ml_core"]
-    sensor_entities = hass.data[DOMAIN][entry.entry_id]["sensor_entities"]
+    data_collector = entry.runtime_data.data_collector
+    ml_core = entry.runtime_data.ml_core
+    sensor_entities = entry.runtime_data.sensor_entities
 
     config = get_entry_config(entry)
     name = config.get("name", "Learning Thermostat")
