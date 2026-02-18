@@ -5,7 +5,7 @@ from datetime import timedelta
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
@@ -23,7 +23,7 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import DOMAIN
+from . import LearningThermostatConfigEntry
 from .data_collector import DataCollector
 from .ml_core import MLCore
 from .utils import sanitize_entity_id_for_feature, get_entry_config
@@ -42,29 +42,24 @@ SCAN_INTERVAL = timedelta(minutes=5)
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: LearningThermostatConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Learning Thermostat climate platform."""
-    data_collector = hass.data[DOMAIN][entry.entry_id]["data_collector"]
-    ml_core = hass.data[DOMAIN][entry.entry_id]["ml_core"]
-    sensor_entities = hass.data[DOMAIN][entry.entry_id]["sensor_entities"]
+    data = entry.runtime_data
 
     config = get_entry_config(entry)
-    name = config.get("name", "Learning Thermostat")
     target_climate_entity = config["target_climate_entity"]
     override_duration = timedelta(minutes=config.get("override_duration", 60))
 
     async_add_entities(
         [
             LearningThermostat(
-                hass,
-                name,
-                entry.entry_id,
+                entry,
                 target_climate_entity,
-                sensor_entities,
-                data_collector,
-                ml_core,
+                data.sensor_entities,
+                data.data_collector,
+                data.ml_core,
                 override_duration,
             )
         ]
@@ -74,11 +69,14 @@ async def async_setup_entry(
 class LearningThermostat(ClimateEntity, RestoreEntity):
     """Representation of a Learning Thermostat."""
 
+    _attr_has_entity_name = True
+    _attr_name = None
+    _attr_hvac_modes = HVAC_MODES
+    _attr_temperature_unit = UnitOfTemperature.CELSIUS
+
     def __init__(
         self,
-        hass: HomeAssistant,
-        name: str,
-        entry_id: str,
+        entry: LearningThermostatConfigEntry,
         target_climate_entity: str,
         sensor_entities: list[str],
         data_collector: DataCollector,
@@ -86,14 +84,18 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         override_duration: timedelta,
     ):
         """Initialize the thermostat."""
-        self.hass = hass
-        self._name = name
-        self._entry_id = entry_id
+        self._entry_id = entry.entry_id
         self._target_climate_entity = target_climate_entity
         self._sensor_entities = sensor_entities
         self._data_collector = data_collector
         self._ml_core = ml_core
         self._override_duration = override_duration
+
+        self._attr_unique_id = entry.entry_id
+        self._attr_device_info = DeviceInfo(
+            identifiers={(entry.domain, entry.entry_id)},
+            name=entry.title,
+        )
 
         self._target_temperature = 21.0
         self._current_temperature = None
@@ -157,21 +159,6 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         self._update_target_state(event.data.get("new_state"))
 
     @property
-    def name(self):
-        """Return the name of the thermostat."""
-        return self._name
-
-    @property
-    def unique_id(self):
-        """Return a unique ID."""
-        return self._entry_id
-
-    @property
-    def temperature_unit(self):
-        """Return the unit of measurement."""
-        return UnitOfTemperature.CELSIUS
-
-    @property
     def supported_features(self):
         """Return the list of supported features."""
         return (
@@ -185,11 +172,6 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
     def hvac_mode(self):
         """Return current operation."""
         return self._hvac_mode
-
-    @property
-    def hvac_modes(self):
-        """Return the list of available operation modes."""
-        return HVAC_MODES
 
     @property
     def preset_mode(self):
