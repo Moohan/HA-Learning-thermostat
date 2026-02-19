@@ -52,7 +52,6 @@ async def async_setup_entry(
     sensor_entities = entry.runtime_data.sensor_entities
 
     config = get_entry_config(entry)
-    name = config.get("name", "Learning Thermostat")
     target_climate_entity = config["target_climate_entity"]
     override_duration = timedelta(minutes=config.get("override_duration", 60))
 
