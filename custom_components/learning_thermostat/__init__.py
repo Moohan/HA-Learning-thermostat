@@ -8,7 +8,6 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.device_registry import async_get as async_get_device_registry
 from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry
 
-from .const import DOMAIN
 from .data_collector import DataCollector
 from .ml_core import MLCore
 from .utils import get_entry_config
@@ -86,7 +85,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: LearningThermostatConfig
     )
 
     # --- Set up the climate platform ---
-    # The data collector is passed via hass.data
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     # Add update listener
