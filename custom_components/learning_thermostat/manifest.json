@@ -1,6 +1,7 @@
 {
   "domain": "learning_thermostat",
   "name": "Learning Thermostat",
+  "integration_type": "helper",
   "version": "0.1.0",
   "documentation": "https://github.com/Moohan/HA-Learning-thermostat",
   "issue_tracker": "https://github.com/Moohan/HA-Learning-thermostat/issues",
