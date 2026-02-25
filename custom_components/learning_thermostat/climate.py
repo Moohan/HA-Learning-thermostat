@@ -25,7 +25,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import DOMAIN
 from .utils import sanitize_entity_id_for_feature, get_entry_config
-from .__init__ import LearningThermostatConfigEntry
+from . import LearningThermostatConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
