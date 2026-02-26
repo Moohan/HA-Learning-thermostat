@@ -1,11 +1,11 @@
 """Climate platform for the Learning Thermostat integration."""
 import logging
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
@@ -23,7 +23,8 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import DOMAIN
+if TYPE_CHECKING:
+    from . import LearningThermostatConfigEntry
 from .data_collector import DataCollector
 from .ml_core import MLCore
 from .utils import sanitize_entity_id_for_feature, get_entry_config
@@ -42,13 +43,14 @@ SCAN_INTERVAL = timedelta(minutes=5)
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: "LearningThermostatConfigEntry",
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Learning Thermostat climate platform."""
-    data_collector = hass.data[DOMAIN][entry.entry_id]["data_collector"]
-    ml_core = hass.data[DOMAIN][entry.entry_id]["ml_core"]
-    sensor_entities = hass.data[DOMAIN][entry.entry_id]["sensor_entities"]
+    data = entry.runtime_data
+    data_collector = data.data_collector
+    ml_core = data.ml_core
+    sensor_entities = data.sensor_entities
 
     config = get_entry_config(entry)
     name = config.get("name", "Learning Thermostat")
@@ -73,6 +75,9 @@ async def async_setup_entry(
 
 class LearningThermostat(ClimateEntity, RestoreEntity):
     """Representation of a Learning Thermostat."""
+
+    _attr_has_entity_name = True
+    _attr_name = None
 
     def __init__(
         self,
