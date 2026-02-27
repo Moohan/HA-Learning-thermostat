@@ -37,6 +37,7 @@ async def test_climate_unique_id(
     assert state is not None
 
     entity_registry = er.async_get(hass)
+    device_registry = dr.async_get(hass)
     entity = entity_registry.async_get("climate.learning_thermostat")
     assert entity is not None
     assert entity.unique_id == mock_config_entry.entry_id
@@ -51,6 +52,7 @@ async def test_climate_unique_id_stability(
     await hass.async_block_till_done()
 
     entity_registry = er.async_get(hass)
+    device_registry = dr.async_get(hass)
     entity = entity_registry.async_get("climate.learning_thermostat")
     assert entity is not None
     original_unique_id = entity.unique_id
@@ -65,6 +67,16 @@ async def test_climate_unique_id_stability(
     # Verify unique_id is still the same
     entity = entity_registry.async_get("climate.learning_thermostat")
     assert entity.unique_id == original_unique_id
+
+    # Change the config entry title (which might be used for default naming)
+    hass.config_entries.async_update_entry(mock_config_entry, title="New Entry Title")
+    await hass.async_block_till_done()
+
+    # Verify unique_id is still the same and device name updated
+    entity = entity_registry.async_get("climate.learning_thermostat")
+    assert entity.unique_id == original_unique_id
+    device = device_registry.async_get(entity.device_id)
+    assert device.name == "New Entry Title"
 
 
 async def test_climate_device_info(
@@ -87,11 +99,3 @@ async def test_climate_device_info(
     assert device.name == mock_config_entry.title
     assert device.manufacturer == "Learning Thermostat"
     assert device.model == "ML Thermostat"
-
-    # Change the config entry title (which might be used for default naming)
-    hass.config_entries.async_update_entry(mock_config_entry, title="New Entry Title")
-    await hass.async_block_till_done()
-
-    # Verify unique_id is still the same
-    entity = entity_registry.async_get("climate.learning_thermostat")
-    assert entity.unique_id == original_unique_id
