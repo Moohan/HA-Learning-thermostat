@@ -3,7 +3,10 @@ from unittest.mock import patch, AsyncMock
 import pytest
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import (
+    device_registry as dr,
+    entity_registry as er,
+)
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
@@ -62,7 +65,28 @@ async def test_climate_unique_id_stability(
     # Verify unique_id is still the same
     entity = entity_registry.async_get("climate.learning_thermostat")
     assert entity.unique_id == original_unique_id
-    assert entity.name == "New Friendly Name"
+
+
+async def test_climate_device_info(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry, patched_integration
+) -> None:
+    """Test that the climate entity has the correct device info."""
+    mock_config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    entity_registry = er.async_get(hass)
+    entity = entity_registry.async_get("climate.learning_thermostat")
+    assert entity is not None
+    original_unique_id = entity.unique_id
+    assert entity.device_id is not None
+
+    device_registry = dr.async_get(hass)
+    device = device_registry.async_get(entity.device_id)
+    assert device is not None
+    assert device.name == mock_config_entry.title
+    assert device.manufacturer == "Learning Thermostat"
+    assert device.model == "ML Thermostat"
 
     # Change the config entry title (which might be used for default naming)
     hass.config_entries.async_update_entry(mock_config_entry, title="New Entry Title")
