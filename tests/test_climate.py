@@ -37,7 +37,6 @@ async def test_climate_unique_id(
     assert state is not None
 
     entity_registry = er.async_get(hass)
-    device_registry = dr.async_get(hass)
     entity = entity_registry.async_get("climate.learning_thermostat")
     assert entity is not None
     assert entity.unique_id == mock_config_entry.entry_id
@@ -90,7 +89,6 @@ async def test_climate_device_info(
     entity_registry = er.async_get(hass)
     entity = entity_registry.async_get("climate.learning_thermostat")
     assert entity is not None
-    original_unique_id = entity.unique_id
     assert entity.device_id is not None
 
     device_registry = dr.async_get(hass)
