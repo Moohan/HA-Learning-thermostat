@@ -25,8 +25,6 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import DOMAIN
-from .data_collector import DataCollector
-from .ml_core import MLCore
 from .utils import sanitize_entity_id_for_feature, get_entry_config
 
 _LOGGER = logging.getLogger(__name__)
