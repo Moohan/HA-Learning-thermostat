@@ -4,7 +4,10 @@ import pytest
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import device_registry as dr
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.learning_thermostat.const import DOMAIN
 
 
 @pytest.fixture
@@ -25,7 +28,7 @@ def patched_integration():
 async def test_climate_unique_id(
     hass: HomeAssistant, mock_config_entry: MockConfigEntry, patched_integration
 ) -> None:
-    """Test that the climate entity has the correct unique ID."""
+    """Test that the climate entity has the correct unique ID and device info."""
     mock_config_entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
     await hass.async_block_till_done()
@@ -37,6 +40,14 @@ async def test_climate_unique_id(
     entity = entity_registry.async_get("climate.learning_thermostat")
     assert entity is not None
     assert entity.unique_id == mock_config_entry.entry_id
+
+    # Verify device registry
+    device_registry = dr.async_get(hass)
+    device = device_registry.async_get_device(
+        identifiers={(DOMAIN, mock_config_entry.entry_id)}
+    )
+    assert device is not None
+    assert device.name == mock_config_entry.title
 
 
 async def test_climate_unique_id_stability(
@@ -64,10 +75,17 @@ async def test_climate_unique_id_stability(
     assert entity.unique_id == original_unique_id
     assert entity.name == "New Friendly Name"
 
-    # Change the config entry title (which might be used for default naming)
+    # Change the config entry title (which should update device name)
     hass.config_entries.async_update_entry(mock_config_entry, title="New Entry Title")
     await hass.async_block_till_done()
 
     # Verify unique_id is still the same
     entity = entity_registry.async_get("climate.learning_thermostat")
     assert entity.unique_id == original_unique_id
+
+    # Verify device name update
+    device_registry = dr.async_get(hass)
+    device = device_registry.async_get_device(
+        identifiers={(DOMAIN, mock_config_entry.entry_id)}
+    )
+    assert device.name == "New Entry Title"
