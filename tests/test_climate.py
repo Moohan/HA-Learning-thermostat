@@ -59,10 +59,14 @@ async def test_climate_unique_id_stability(
     )
     await hass.async_block_till_done()
 
+    # Verify name is updated in the registry
+    entity = entity_registry.async_get("climate.learning_thermostat")
+    assert entity.name == "New Friendly Name"
+    await hass.async_block_till_done()
+
     # Verify unique_id is still the same
     entity = entity_registry.async_get("climate.learning_thermostat")
     assert entity.unique_id == original_unique_id
-    assert entity.name == "New Friendly Name"
 
     # Change the config entry title (which might be used for default naming)
     hass.config_entries.async_update_entry(mock_config_entry, title="New Entry Title")
