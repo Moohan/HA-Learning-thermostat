@@ -57,6 +57,8 @@ async def test_climate_unique_id_stability(
     entity_registry.async_update_entity(
         "climate.learning_thermostat", name="New Friendly Name"
     )
+    # The integration uses has_entity_name = True, so the name in state
+    # depends on the device name (config entry title) if not overridden.
     await hass.async_block_till_done()
 
     # Verify unique_id is still the same
