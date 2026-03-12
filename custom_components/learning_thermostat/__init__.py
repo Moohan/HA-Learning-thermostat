@@ -32,7 +32,6 @@ type LearningThermostatConfigEntry = ConfigEntry[LearningThermostatData]
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Learning Thermostat component."""
-    hass.data.setdefault(DOMAIN, {})
     return True
 
 
