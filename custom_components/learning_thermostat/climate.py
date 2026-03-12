@@ -5,12 +5,13 @@ from datetime import timedelta
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.config_entries import ConfigEntry
+from . import LearningThermostatConfigEntry
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
     HVACMode,
 )
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.const import (
     ATTR_TEMPERATURE,
     STATE_UNAVAILABLE,
@@ -42,58 +43,37 @@ SCAN_INTERVAL = timedelta(minutes=5)
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: LearningThermostatConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Learning Thermostat climate platform."""
-    data_collector = hass.data[DOMAIN][entry.entry_id]["data_collector"]
-    ml_core = hass.data[DOMAIN][entry.entry_id]["ml_core"]
-    sensor_entities = hass.data[DOMAIN][entry.entry_id]["sensor_entities"]
-
-    config = get_entry_config(entry)
-    name = config.get("name", "Learning Thermostat")
-    target_climate_entity = config["target_climate_entity"]
-    override_duration = timedelta(minutes=config.get("override_duration", 60))
-
-    async_add_entities(
-        [
-            LearningThermostat(
-                hass,
-                name,
-                entry.entry_id,
-                target_climate_entity,
-                sensor_entities,
-                data_collector,
-                ml_core,
-                override_duration,
-            )
-        ]
-    )
+    async_add_entities([LearningThermostat(entry)])
 
 
 class LearningThermostat(ClimateEntity, RestoreEntity):
     """Representation of a Learning Thermostat."""
 
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        name: str,
-        entry_id: str,
-        target_climate_entity: str,
-        sensor_entities: list[str],
-        data_collector: DataCollector,
-        ml_core: MLCore,
-        override_duration: timedelta,
-    ):
+    _attr_has_entity_name = True
+    _attr_name = None
+
+    def __init__(self, entry: LearningThermostatConfigEntry):
         """Initialize the thermostat."""
-        self.hass = hass
-        self._name = name
-        self._entry_id = entry_id
-        self._target_climate_entity = target_climate_entity
-        self._sensor_entities = sensor_entities
-        self._data_collector = data_collector
-        self._ml_core = ml_core
-        self._override_duration = override_duration
+        self._entry = entry
+        config = get_entry_config(entry)
+
+        self._target_climate_entity = config["target_climate_entity"]
+        self._override_duration = timedelta(minutes=config.get("override_duration", 60))
+
+        self._data_collector = entry.runtime_data.data_collector
+        self._ml_core = entry.runtime_data.ml_core
+        self._sensor_entities = entry.runtime_data.sensor_entities
+
+        self._attr_unique_id = entry.entry_id
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name=entry.title,
+            manufacturer="Learning Thermostat",
+        )
 
         self._target_temperature = 21.0
         self._current_temperature = None
@@ -156,15 +136,6 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         """Handle state changes for the target climate entity."""
         self._update_target_state(event.data.get("new_state"))
 
-    @property
-    def name(self):
-        """Return the name of the thermostat."""
-        return self._name
-
-    @property
-    def unique_id(self):
-        """Return a unique ID."""
-        return self._entry_id
 
     @property
     def temperature_unit(self):
