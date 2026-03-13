@@ -5,7 +5,6 @@ from datetime import timedelta
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
@@ -26,8 +25,6 @@ from homeassistant.helpers.device_registry import DeviceInfo
 
 from . import LearningThermostatConfigEntry
 from .const import DOMAIN
-from .data_collector import DataCollector
-from .ml_core import MLCore
 from .utils import sanitize_entity_id_for_feature, get_entry_config
 
 _LOGGER = logging.getLogger(__name__)
