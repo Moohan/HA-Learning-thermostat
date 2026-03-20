@@ -11,5 +11,6 @@ async def test_setup_entry(hass: HomeAssistant, mock_config_entry: MockConfigEnt
     assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
     await hass.async_block_till_done()
 
-    assert DOMAIN in hass.data
+    assert mock_config_entry.runtime_data.data_collector is not None
+    assert mock_config_entry.runtime_data.ml_core is not None
     assert hass.states.get("climate.learning_thermostat") is not None
