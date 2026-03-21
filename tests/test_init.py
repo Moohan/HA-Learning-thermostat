@@ -2,8 +2,6 @@
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.learning_thermostat.const import DOMAIN
-
 
 async def test_setup_entry(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
     """Test that the integration loads."""

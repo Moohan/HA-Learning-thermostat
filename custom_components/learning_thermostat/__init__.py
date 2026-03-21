@@ -2,6 +2,7 @@
 import logging
 
 from dataclasses import dataclass
+from typing import TypeAlias
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.typing import ConfigType
@@ -27,7 +28,7 @@ class LearningThermostatData:
     sensor_entities: list[str]
 
 
-type LearningThermostatConfigEntry = ConfigEntry[LearningThermostatData]
+LearningThermostatConfigEntry: TypeAlias = ConfigEntry[LearningThermostatData]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
