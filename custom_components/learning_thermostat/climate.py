@@ -1,4 +1,6 @@
 """Climate platform for the Learning Thermostat integration."""
+from __future__ import annotations
+
 import logging
 from datetime import timedelta
 
