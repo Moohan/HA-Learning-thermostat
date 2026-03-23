@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-"""The Learning Thermostat custom component."""
 import logging
-
 from dataclasses import dataclass
+from typing import TypeAlias
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
@@ -11,7 +10,6 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.device_registry import async_get as async_get_device_registry
 from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry
 
-from .const import DOMAIN
 from .data_collector import DataCollector
 from .ml_core import MLCore
 from .utils import get_entry_config
