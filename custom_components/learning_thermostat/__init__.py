@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import TypeAlias
+from typing import TYPE_CHECKING
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
@@ -19,7 +19,11 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["climate"]
 
-LearningThermostatConfigEntry: TypeAlias = ConfigEntry["LearningThermostatData"]
+if TYPE_CHECKING:
+    from typing import TypeAlias
+    LearningThermostatConfigEntry: TypeAlias = ConfigEntry["LearningThermostatData"]
+else:
+    LearningThermostatConfigEntry = ConfigEntry
 
 
 @dataclass
