@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -28,8 +29,10 @@ class LearningThermostatData:
     sensor_entities: list[str]
 
 
-type_alias_for_config_entry = ConfigEntry[LearningThermostatData]
-LearningThermostatConfigEntry = type_alias_for_config_entry
+if TYPE_CHECKING:
+    LearningThermostatConfigEntry = ConfigEntry[LearningThermostatData]
+else:
+    LearningThermostatConfigEntry = ConfigEntry
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
