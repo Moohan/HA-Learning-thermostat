@@ -1,10 +1,13 @@
 """Climate platform for the Learning Thermostat integration."""
+from __future__ import annotations
+
 import logging
 from datetime import timedelta
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
