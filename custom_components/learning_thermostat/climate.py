@@ -62,9 +62,18 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
 
         self._entry_id = entry.entry_id
         self._target_climate_entity = config["target_climate_entity"]
-        self._sensor_entities = entry.runtime_data.sensor_entities
-        self._data_collector = entry.runtime_data.data_collector
-        self._ml_core = entry.runtime_data.ml_core
+
+        # Check if runtime_data is available; otherwise, default to empty/None
+        if hasattr(entry, "runtime_data"):
+            self._sensor_entities = entry.runtime_data.sensor_entities
+            self._data_collector = entry.runtime_data.data_collector
+            self._ml_core = entry.runtime_data.ml_core
+        else:
+            _LOGGER.error("%s: runtime_data is not initialized", entry.title)
+            self._sensor_entities = []
+            self._data_collector = None
+            self._ml_core = None
+
         self._override_duration = timedelta(minutes=config.get("override_duration", 60))
 
         self._attr_unique_id = entry.entry_id
