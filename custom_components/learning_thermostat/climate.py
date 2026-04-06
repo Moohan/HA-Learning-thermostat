@@ -1,18 +1,16 @@
 """Climate platform for the Learning Thermostat integration."""
-from __future__ import annotations
-
 import logging
 from datetime import timedelta
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
     HVACMode,
 )
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.const import (
     ATTR_TEMPERATURE,
     STATE_UNAVAILABLE,
@@ -47,7 +45,19 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Learning Thermostat climate platform."""
-    async_add_entities([LearningThermostat(entry)])
+    config = get_entry_config(entry)
+    target_climate_entity = config["target_climate_entity"]
+    override_duration = timedelta(minutes=config.get("override_duration", 60))
+
+    async_add_entities(
+        [
+            LearningThermostat(
+                entry,
+                target_climate_entity,
+                override_duration,
+            )
+        ]
+    )
 
 
 class LearningThermostat(ClimateEntity, RestoreEntity):
@@ -56,25 +66,19 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
     _attr_has_entity_name = True
     _attr_name = None
 
-    def __init__(self, entry: LearningThermostatConfigEntry):
+    def __init__(
+        self,
+        entry: LearningThermostatConfigEntry,
+        target_climate_entity: str,
+        override_duration: timedelta,
+    ):
         """Initialize the thermostat."""
-        config = get_entry_config(entry)
-
-        self._entry_id = entry.entry_id
-        self._target_climate_entity = config["target_climate_entity"]
-
-        # Check if runtime_data is available; otherwise, default to empty/None
-        if hasattr(entry, "runtime_data"):
-            self._sensor_entities = entry.runtime_data.sensor_entities
-            self._data_collector = entry.runtime_data.data_collector
-            self._ml_core = entry.runtime_data.ml_core
-        else:
-            _LOGGER.error("%s: runtime_data is not initialized", entry.title)
-            self._sensor_entities = []
-            self._data_collector = None
-            self._ml_core = None
-
-        self._override_duration = timedelta(minutes=config.get("override_duration", 60))
+        self._entry = entry
+        self._target_climate_entity = target_climate_entity
+        self._sensor_entities = entry.runtime_data.sensor_entities
+        self._data_collector = entry.runtime_data.data_collector
+        self._ml_core = entry.runtime_data.ml_core
+        self._override_duration = override_duration
 
         self._attr_unique_id = entry.entry_id
         self._attr_device_info = DeviceInfo(
@@ -145,7 +149,6 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         """Handle state changes for the target climate entity."""
         self._update_target_state(event.data.get("new_state"))
 
-
     @property
     def temperature_unit(self):
         """Return the unit of measurement."""
@@ -215,7 +218,7 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
 
         _LOGGER.info(
             "%s: Manual override to %s°C until %s",
-            self.name, temperature, self._override_end_time
+            self._entry.title, temperature, self._override_end_time
         )
 
         # Continuous Learning: record this manual adjustment
@@ -268,7 +271,7 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
             if dt_util.now() < self._override_end_time:
                 return
             else:
-                _LOGGER.info("%s: Manual override has ended.", self.name)
+                _LOGGER.info("%s: Manual override has ended.", self._entry.title)
                 self._is_override_active = False
 
         sensor_data = {}
@@ -280,11 +283,11 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         predicted_temp = await self._ml_core.async_predict_temperature(sensor_data)
 
         if predicted_temp is not None:
-            _LOGGER.info("%s: Predicted temperature: %s", self.name, predicted_temp)
+            _LOGGER.info("%s: Predicted temperature: %s", self._entry.title, predicted_temp)
             self._target_temperature = round(predicted_temp, 1)
             await self._async_set_target_climate_temp(self._target_temperature)
         else:
-            _LOGGER.warning("%s: Failed to get a prediction.", self.name)
+            _LOGGER.warning("%s: Failed to get a prediction.", self._entry.title)
         
         self.async_write_ha_state()
 

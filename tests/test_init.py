@@ -3,7 +3,6 @@ from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
-
 async def test_setup_entry(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> None:
     """Test that the integration loads."""
     mock_config_entry.add_to_hass(hass)
