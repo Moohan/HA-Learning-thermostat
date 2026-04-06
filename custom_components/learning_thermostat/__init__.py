@@ -33,21 +33,6 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["climate"]
 
 
-@dataclass
-class LearningThermostatData:
-    """Runtime data for Learning Thermostat."""
-
-    data_collector: DataCollector
-    ml_core: MLCore
-    sensor_entities: list[str]
-
-
-if TYPE_CHECKING:
-    LearningThermostatConfigEntry = ConfigEntry[LearningThermostatData]
-else:
-    LearningThermostatConfigEntry = ConfigEntry
-
-
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Learning Thermostat component."""
     return True
@@ -122,8 +107,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: LearningThermostatConfi
     _LOGGER.info("Unloading Learning Thermostat entry: %s", entry.title)
 
     # Stop the data collector
-    if hasattr(entry, "runtime_data"):
-        entry.runtime_data.data_collector.stop()
+    entry.runtime_data.data_collector.stop()
 
     # Forward the unload to the platform
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

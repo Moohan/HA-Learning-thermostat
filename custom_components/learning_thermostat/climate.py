@@ -1,18 +1,16 @@
 """Climate platform for the Learning Thermostat integration."""
-from __future__ import annotations
-
 import logging
 from datetime import timedelta
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
     HVACMode,
 )
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.const import (
     ATTR_TEMPERATURE,
     STATE_UNAVAILABLE,
@@ -24,7 +22,6 @@ from homeassistant.helpers.event import (
     async_track_state_change_event,
 )
 from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.helpers.device_registry import DeviceInfo
 
 from . import LearningThermostatConfigEntry
 from .const import DOMAIN
