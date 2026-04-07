@@ -55,6 +55,10 @@ class MLCore:
 
         try:
             df = pd.read_csv(self._data_path)
+            # Ensure all columns except timestamp are numeric if possible
+            for col in df.columns:
+                if col != "timestamp":
+                    df[col] = pd.to_numeric(df[col], errors="ignore")
         except Exception as e:
             _LOGGER.error("Error reading data file: %s", e)
             return False
@@ -131,7 +135,10 @@ class MLCore:
         """Synchronous method for CPU-bound prediction."""
         try:
             df = pd.DataFrame([sensor_data])
-            
+            # Ensure all numeric sensors provided as strings are converted
+            for col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="ignore")
+
             # --- Feature Engineering (must match training) ---
             # Use local time for feature extraction to align with user schedules
             now = dt_util.now()
