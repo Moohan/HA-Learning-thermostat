@@ -41,6 +41,17 @@ class MLCore:
         else:
             _LOGGER.info("No pre-trained model found. Waiting for training.")
 
+    def _ensure_numeric_features(
+        self, df: pd.DataFrame, ignore_cols: list[str] | None = None
+    ) -> pd.DataFrame:
+        """Ensure all columns except ignored ones are numeric if possible."""
+        if ignore_cols is None:
+            ignore_cols = []
+        for col in df.columns:
+            if col not in ignore_cols:
+                df[col] = pd.to_numeric(df[col], errors="ignore")
+        return df
+
     async def async_train_model(self):
         """Train the machine learning model from the collected data."""
         return await self.hass.async_add_executor_job(self._train_model_sync)
@@ -55,10 +66,7 @@ class MLCore:
 
         try:
             df = pd.read_csv(self._data_path)
-            # Ensure all columns except timestamp are numeric if possible
-            for col in df.columns:
-                if col != "timestamp":
-                    df[col] = pd.to_numeric(df[col], errors="ignore")
+            df = self._ensure_numeric_features(df, ignore_cols=["timestamp"])
         except Exception as e:
             _LOGGER.error("Error reading data file: %s", e)
             return False
@@ -135,9 +143,8 @@ class MLCore:
         """Synchronous method for CPU-bound prediction."""
         try:
             df = pd.DataFrame([sensor_data])
-            # Ensure all numeric sensors provided as strings are converted
-            for col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors="ignore")
+            # Align ignored columns with training path for consistency
+            df = self._ensure_numeric_features(df, ignore_cols=["timestamp"])
 
             # --- Feature Engineering (must match training) ---
             # Use local time for feature extraction to align with user schedules
