@@ -67,7 +67,7 @@ class DataCollector:
         old_temp = old_state.attributes.get(ATTR_TEMPERATURE)
         new_temp = new_state.attributes.get(ATTR_TEMPERATURE)
 
-        if old_temp != new_temp and new_temp is not None:
+        if old_temp != new_temp and new_temp is not None and event.context.user_id is not None:
             _LOGGER.info(
                 "Initial learning: Target temp for %s changed to %s. Collecting data.",
                 self._climate_entity_id,

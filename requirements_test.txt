@@ -1,5 +1,7 @@
 pytest
 pytest-homeassistant-custom-component
 ruff
-scikit-learn
-pandas
+joblib>=1.3.0,<2.0.0
+pandas>=2.1.0,<3.0.0
+numpy>=1.25.0,<2.0.0
+scikit-learn>=1.3.0,<2.0.0
