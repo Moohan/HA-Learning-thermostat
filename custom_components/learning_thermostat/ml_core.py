@@ -52,7 +52,12 @@ class MLCore:
                 try:
                     df[col] = pd.to_numeric(df[col])
                 except (ValueError, TypeError):
-                    continue
+                    # Coerce only if the column contains at least one numeric value.
+                    # This avoids converting purely categorical columns (like "on"/"off")
+                    # to all-NaN while allowing partial conversion of mixed-type sensor states.
+                    coerced = pd.to_numeric(df[col], errors="coerce")
+                    if coerced.notna().any():
+                        df[col] = coerced
         return df
 
     async def async_train_model(self):
