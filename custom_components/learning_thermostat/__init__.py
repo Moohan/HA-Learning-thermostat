@@ -60,7 +60,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: LearningThermostatConfig
         ]
         for entity in entity_registry.entities.values():
             if (
-                entity.device_id in devices_in_area
+                (entity.device_id in devices_in_area or entity.area_id == area_id)
                 and entity.domain in ["sensor", "binary_sensor"]
             ):
                 sensor_entities.add(entity.entity_id)
