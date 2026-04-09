@@ -73,7 +73,7 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         entry: LearningThermostatConfigEntry,
         target_climate_entity: str,
         override_duration: timedelta,
-        temperature_unit: str,
+        temperature_unit: UnitOfTemperature | str,
     ):
         """Initialize the thermostat."""
         self._entry = entry
@@ -119,7 +119,14 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
 
         last_state = await self.async_get_last_state()
         if last_state:
-            self._attr_target_temperature = last_state.attributes.get(ATTR_TEMPERATURE, 21.0)
+            fallback_temp = (
+                70.0
+                if self._attr_temperature_unit == UnitOfTemperature.FAHRENHEIT
+                else 21.0
+            )
+            self._attr_target_temperature = last_state.attributes.get(
+                ATTR_TEMPERATURE, fallback_temp
+            )
             if last_state.state:
                 try:
                     hvac_mode = HVACMode(last_state.state)
@@ -197,11 +204,14 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         self._override_end_time = dt_util.now() + self._override_duration
 
         _LOGGER.info(
-            "%s: Manual override to %s°C until %s",
-            self.name, temperature, self._override_end_time
+            "%s: Manual override to %s%s until %s",
+            self.name,
+            temperature,
+            self.temperature_unit,
+            self._override_end_time,
         )
 
-        await self._async_set_target_climate_temp(temperature, context=self._context)
+        await self._async_set_target_climate_temp(temperature, context=self.context)
         self.async_write_ha_state()
 
     async def async_set_hvac_mode(self, hvac_mode):
