@@ -107,7 +107,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: LearningThermostatConfi
     _LOGGER.info("Unloading Learning Thermostat entry: %s", entry.title)
 
     # Stop the data collector
-    entry.runtime_data.data_collector.stop()
+    if hasattr(entry, "runtime_data"):
+        entry.runtime_data.data_collector.stop()
 
     # Forward the unload to the platform
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
