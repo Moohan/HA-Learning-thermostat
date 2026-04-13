@@ -1,6 +1,7 @@
 pytest
 pytest-homeassistant-custom-component
 ruff
+josepy<2.0.0
 joblib>=1.3.0,<2.0.0
 pandas>=2.1.0,<3.0.0
 numpy>=1.25.0,<2.0.0
