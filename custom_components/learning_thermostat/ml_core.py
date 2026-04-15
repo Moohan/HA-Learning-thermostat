@@ -48,8 +48,20 @@ class MLCore:
         if ignore_cols is None:
             ignore_cols = []
         for col in df.columns:
-            if col not in ignore_cols:
-                df[col] = pd.to_numeric(df[col], errors="ignore")
+            if col in ignore_cols:
+                continue
+
+            # Try strict conversion first
+            try:
+                df[col] = pd.to_numeric(df[col])
+            except (ValueError, TypeError):
+                # If strict fails, try with coerce to see if it's partially numeric
+                coerced = pd.to_numeric(df[col], errors="coerce")
+                if coerced.notna().any():
+                    # If it has at least one numeric value, use the coerced version
+                    df[col] = coerced
+                # Otherwise, keep it as it is (likely a categorical feature)
+
         return df
 
     async def async_train_model(self):
