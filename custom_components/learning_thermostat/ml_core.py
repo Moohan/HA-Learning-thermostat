@@ -51,16 +51,9 @@ class MLCore:
             if col in ignore_cols:
                 continue
 
-            # Try strict conversion first
-            try:
-                df[col] = pd.to_numeric(df[col])
-            except (ValueError, TypeError):
-                # If strict fails, try with coerce to see if it's partially numeric
-                coerced = pd.to_numeric(df[col], errors="coerce")
-                if coerced.notna().any():
-                    # If it has at least one numeric value, use the coerced version
-                    df[col] = coerced
-                # Otherwise, keep it as it is (likely a categorical feature)
+            coerced = pd.to_numeric(df[col], errors="coerce")
+            if coerced.notna().any():
+                df[col] = coerced
 
         return df
 
