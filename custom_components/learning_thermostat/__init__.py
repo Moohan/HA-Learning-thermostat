@@ -72,12 +72,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: LearningThermostatConfig
     data_path = hass.config.path(f"learning_thermostat_{entry.entry_id}.csv")
     model_path = hass.config.path(f"learning_thermostat_{entry.entry_id}.joblib")
 
+    ml_core = MLCore(hass, data_path, model_path)
+
+    async def _async_trigger_training():
+        """Trigger model training in the background."""
+        hass.async_create_background_task(ml_core.async_train_model(), "ml_training_periodic")
+
     data_collector = DataCollector(
-        hass, config["target_climate_entity"], sensor_entities, data_path
+        hass,
+        config["target_climate_entity"],
+        sensor_entities,
+        data_path,
+        on_data_collected=_async_trigger_training,
     )
     await data_collector.async_setup()
-
-    ml_core = MLCore(hass, data_path, model_path)
     await ml_core.async_initialize()
     # Trigger initial training in the background
     hass.async_create_background_task(ml_core.async_train_model(), "ml_training")
