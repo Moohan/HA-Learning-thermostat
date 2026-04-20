@@ -22,18 +22,21 @@ class DataCollector:
         climate_entity_id: str,
         sensor_entity_ids: list[str],
         storage_path: str,
+        on_data_collected=None,
     ):
         """Initialize the data collector."""
         self.hass = hass
         self._climate_entity_id = climate_entity_id
         self._sensor_entity_ids = sensor_entity_ids
         self._storage_path = storage_path
+        self._on_data_collected = on_data_collected
 
         self._feature_names = [
             sanitize_entity_id_for_feature(eid) for eid in self._sensor_entity_ids
         ]
         self._fieldnames = ["timestamp"] + self._feature_names + ["target_temperature"]
         self._unsubscribe = None
+        self._data_points_collected = 0
 
     async def async_setup(self):
         """Set up the data collector and listeners."""
@@ -89,6 +92,10 @@ class DataCollector:
         data_row["target_temperature"] = target_temperature
 
         await self.hass.async_add_executor_job(self._write_to_csv, data_row)
+
+        self._data_points_collected += 1
+        if self._on_data_collected and self._data_points_collected % 10 == 0:
+            self._on_data_collected()
 
     def _write_to_csv(self, data_row):
         """Write a row of data to the CSV file."""

@@ -5,7 +5,7 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.device_registry import async_get as async_get_device_registry
@@ -68,19 +68,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: LearningThermostatConfig
     sensor_entities = list(sensor_entities)
     _LOGGER.info("Monitoring sensors: %s", sensor_entities)
 
-    # --- Initialize Data Collector and ML Core ---
+    # --- Initialize ML Core and Data Collector ---
     data_path = hass.config.path(f"learning_thermostat_{entry.entry_id}.csv")
     model_path = hass.config.path(f"learning_thermostat_{entry.entry_id}.joblib")
-
-    data_collector = DataCollector(
-        hass, config["target_climate_entity"], sensor_entities, data_path
-    )
-    await data_collector.async_setup()
 
     ml_core = MLCore(hass, data_path, model_path)
     await ml_core.async_initialize()
     # Trigger initial training in the background
     hass.async_create_background_task(ml_core.async_train_model(), "ml_training")
+
+    @callback
+    def _model_retrain_callback():
+        """Retrain the model in the background."""
+        hass.async_create_background_task(ml_core.async_train_model(), "ml_retraining")
+
+    data_collector = DataCollector(
+        hass,
+        config["target_climate_entity"],
+        sensor_entities,
+        data_path,
+        on_data_collected=_model_retrain_callback,
+    )
+    await data_collector.async_setup()
 
     entry.runtime_data = LearningThermostatData(
         data_collector=data_collector,
