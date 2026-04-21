@@ -6,6 +6,10 @@ from homeassistant.core import HomeAssistant, callback, Context
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.climate import (
+    ATTR_CURRENT_TEMPERATURE,
+    ATTR_MAX_TEMP,
+    ATTR_MIN_TEMP,
+    ATTR_TARGET_TEMP_STEP,
     ClimateEntity,
     ClimateEntityFeature,
     HVACMode,
@@ -67,6 +71,7 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
 
     _attr_has_entity_name = True
     _attr_name = None
+    _attr_should_poll = False
 
     def __init__(
         self,
@@ -163,13 +168,44 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
     def _update_target_state(self, state):
         """Update internal state from the target climate entity."""
         if state and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-            self._attr_current_temperature = state.attributes.get("current_temperature")
+            self._attr_current_temperature = state.attributes.get(
+                ATTR_CURRENT_TEMPERATURE
+            )
+            self._attr_min_temp = state.attributes.get(ATTR_MIN_TEMP)
+            self._attr_max_temp = state.attributes.get(ATTR_MAX_TEMP)
+            self._attr_target_temperature_step = state.attributes.get(
+                ATTR_TARGET_TEMP_STEP
+            )
             self.async_write_ha_state()
 
     @callback
     def _async_target_climate_state_listener(self, event):
         """Handle state changes for the target climate entity."""
-        self._update_target_state(event.data.get("new_state"))
+        new_state = event.data.get("new_state")
+        old_state = event.data.get("old_state")
+
+        self._update_target_state(new_state)
+
+        if (
+            new_state
+            and old_state
+            and event.context.user_id is not None
+            and new_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN)
+            and old_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN)
+        ):
+            new_temp = new_state.attributes.get(ATTR_TEMPERATURE)
+            old_temp = old_state.attributes.get(ATTR_TEMPERATURE)
+
+            if new_temp != old_temp and new_temp is not None:
+                _LOGGER.info(
+                    "%s: Detected manual temperature change on %s to %s. Activating override.",
+                    self.name,
+                    self._target_climate_entity,
+                    new_temp,
+                )
+                self.hass.async_create_task(
+                    self.async_set_temperature(**{ATTR_TEMPERATURE: new_temp})
+                )
 
     @property
     def preset_mode(self):
@@ -211,7 +247,7 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
             self._override_end_time,
         )
 
-        await self._async_set_target_climate_temp(temperature, context=self.context)
+        await self._async_set_target_climate_temp(temperature, context=self._context)
         self.async_write_ha_state()
 
     async def async_set_hvac_mode(self, hvac_mode):
