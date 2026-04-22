@@ -71,3 +71,45 @@ async def test_climate_unique_id_stability(
     # Verify unique_id is still the same
     entity = entity_registry.async_get("climate.learning_thermostat")
     assert entity.unique_id == original_unique_id
+
+
+async def test_manual_override_from_target(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry, patched_integration
+) -> None:
+    """Test that manual changes on the target entity trigger an override."""
+    mock_config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Initial state
+    state = hass.states.get("climate.learning_thermostat")
+    assert state.attributes.get("is_override_active") is False
+
+    # Simulate a manual change on the target entity
+    from homeassistant.core import Context
+    from homeassistant.const import ATTR_TEMPERATURE
+
+    user_context = Context(user_id="test_user")
+    target_entity = mock_config_entry.data["target_climate_entity"]
+
+    # Set initial target state
+    hass.states.async_set(
+        target_entity,
+        "heat",
+        {ATTR_TEMPERATURE: 20.0, "current_temperature": 19.0}
+    )
+    await hass.async_block_till_done()
+
+    # Change target temperature with user context
+    hass.states.async_set(
+        target_entity,
+        "heat",
+        {ATTR_TEMPERATURE: 25.0, "current_temperature": 19.0},
+        context=user_context
+    )
+    await hass.async_block_till_done()
+
+    # Verify Learning Thermostat is now in override mode
+    state = hass.states.get("climate.learning_thermostat")
+    assert state.attributes.get("is_override_active") is True
+    assert state.attributes.get(ATTR_TEMPERATURE) == 25.0

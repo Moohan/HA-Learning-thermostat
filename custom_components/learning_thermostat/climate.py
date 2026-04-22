@@ -108,6 +108,14 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         self._attr_hvac_mode = HVACMode.OFF  # Default to OFF
         self._attr_preset_mode = PRESET_LEARNING_CONTROLLING
 
+        # Initialize attributes that will be synced from target
+        self._attr_min_temp = 7.0
+        self._attr_max_temp = 35.0
+        if self._attr_temperature_unit == UnitOfTemperature.FAHRENHEIT:
+            self._attr_min_temp = 45.0
+            self._attr_max_temp = 95.0
+        self._attr_target_temperature_step = 1.0
+
         self._is_override_active = False
         self._override_end_time = None
         self._prediction_task = None
@@ -164,12 +172,44 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         """Update internal state from the target climate entity."""
         if state and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
             self._attr_current_temperature = state.attributes.get("current_temperature")
+            if (min_temp := state.attributes.get("min_temp")) is not None:
+                self._attr_min_temp = min_temp
+            if (max_temp := state.attributes.get("max_temp")) is not None:
+                self._attr_max_temp = max_temp
+            if (
+                target_temp_step := state.attributes.get("target_temp_step")
+            ) is not None:
+                self._attr_target_temperature_step = target_temp_step
             self.async_write_ha_state()
 
     @callback
     def _async_target_climate_state_listener(self, event):
         """Handle state changes for the target climate entity."""
-        self._update_target_state(event.data.get("new_state"))
+        new_state = event.data.get("new_state")
+        old_state = event.data.get("old_state")
+
+        if new_state:
+            # Detect manual changes on the target entity
+            if (
+                old_state
+                and event.context.user_id is not None
+                and new_state.attributes.get(ATTR_TEMPERATURE)
+                != old_state.attributes.get(ATTR_TEMPERATURE)
+            ):
+                new_temp = new_state.attributes.get(ATTR_TEMPERATURE)
+                if new_temp is not None:
+                    _LOGGER.info(
+                        "%s: Manual change detected on %s. Setting override to %s%s",
+                        self.name,
+                        self._target_climate_entity,
+                        new_temp,
+                        self.temperature_unit,
+                    )
+                    self._attr_target_temperature = new_temp
+                    self._is_override_active = True
+                    self._override_end_time = dt_util.now() + self._override_duration
+
+            self._update_target_state(new_state)
 
     @property
     def preset_mode(self):
