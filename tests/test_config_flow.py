@@ -188,3 +188,18 @@ async def test_options_flow(hass: HomeAssistant) -> None:
 
     # Verify the config entry title was updated
     assert config_entry.title == "New Name"
+
+async def test_config_flow_schema_no_default_none(hass: HomeAssistant) -> None:
+    """Test that the config flow schema does not contain default=None."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    assert result["step_id"] == "user"
+
+    data_schema = result["data_schema"].schema
+    for key in data_schema:
+        if hasattr(key, "schema") and key.schema == "target_climate_entity":
+            # Ensure no default is set when it's not provided
+            # vol.Undefined is a class, but instances of it are used as defaults
+            assert isinstance(key.default, Undefined) or key.default == Undefined or str(key.default) == "..."
