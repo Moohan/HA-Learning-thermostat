@@ -18,14 +18,19 @@ def get_basic_schema(defaults: dict[str, Any] | None = None, include_advanced_to
     if defaults is None:
         defaults = {}
 
-    data_schema = {
-        vol.Required(
-            "target_climate_entity",
-            default=defaults.get("target_climate_entity"),
-        ): selector.EntitySelector(
-            selector.EntitySelectorConfig(domain="climate"),
-        ),
-    }
+    target_entity = defaults.get("target_climate_entity")
+    if target_entity is not None:
+        data_schema = {
+            vol.Required("target_climate_entity", default=target_entity): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="climate"),
+            ),
+        }
+    else:
+        data_schema = {
+            vol.Required("target_climate_entity"): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="climate"),
+            ),
+        }
 
     if defaults.get(CONF_NAME) is not None:
         data_schema[vol.Optional(CONF_NAME, default=defaults.get(CONF_NAME))] = selector.TextSelector()
@@ -45,13 +50,13 @@ def get_advanced_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
         {
             vol.Optional(
                 "areas",
-                default=defaults.get("areas", []),
+                default=defaults.get("areas") or [],
             ): selector.AreaSelector(
                 selector.AreaSelectorConfig(multiple=True),
             ),
             vol.Optional(
                 "include_entities",
-                default=defaults.get("include_entities", []),
+                default=defaults.get("include_entities") or [],
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     domain=["sensor", "binary_sensor"], multiple=True
@@ -59,7 +64,7 @@ def get_advanced_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
             ),
             vol.Required(
                 "override_duration",
-                default=defaults.get("override_duration", 60),
+                default=defaults.get("override_duration") or 60,
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=1,
@@ -166,7 +171,11 @@ class LearningThermostatOptionsFlowHandler(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=user_input)
 
         # Merge data and options for the default values
-        current_config = {**self.config_entry.data, **self.config_entry.options}
+        current_config = {
+            k: v
+            for k, v in {**self.config_entry.data, **self.config_entry.options}.items()
+            if v is not None
+        }
 
         return self.async_show_form(
             step_id="init",
