@@ -6,6 +6,9 @@ from homeassistant.core import HomeAssistant, callback, Context
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.climate import (
+    ATTR_MAX_TEMP,
+    ATTR_MIN_TEMP,
+    ATTR_TARGET_TEMP_STEP,
     ClimateEntity,
     ClimateEntityFeature,
     HVACMode,
@@ -170,11 +173,19 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         """Update internal state from the target climate entity."""
         if state and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
             self._attr_current_temperature = state.attributes.get("current_temperature")
-            self._attr_min_temp = state.attributes.get("min_temp", self._attr_min_temp)
-            self._attr_max_temp = state.attributes.get("max_temp", self._attr_max_temp)
-            self._attr_target_temperature_step = state.attributes.get(
-                "target_temp_step", self._attr_target_temperature_step
-            )
+
+            min_temp = state.attributes.get(ATTR_MIN_TEMP)
+            if min_temp is not None:
+                self._attr_min_temp = min_temp
+
+            max_temp = state.attributes.get(ATTR_MAX_TEMP)
+            if max_temp is not None:
+                self._attr_max_temp = max_temp
+
+            step = state.attributes.get(ATTR_TARGET_TEMP_STEP)
+            if step is not None:
+                self._attr_target_temperature_step = step
+
             self.async_write_ha_state()
 
     @callback
@@ -191,7 +202,7 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         # Detect manual temperature change on the target entity
         if (
             old_state
-            and event.context.user_id is not None
+            and new_state.context.user_id is not None
             and new_state.attributes.get(ATTR_TEMPERATURE) is not None
             and new_state.attributes.get(ATTR_TEMPERATURE)
             != old_state.attributes.get(ATTR_TEMPERATURE)

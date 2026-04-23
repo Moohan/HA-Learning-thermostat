@@ -41,7 +41,7 @@ async def test_attribute_synchronization(
             ATTR_CURRENT_TEMPERATURE: 18.0,
             ATTR_MIN_TEMP: 15.0,
             ATTR_MAX_TEMP: 25.0,
-            "target_temp_step": 0.1,
+            ATTR_TARGET_TEMP_STEP: 0.1,
         },
     )
 
@@ -63,7 +63,7 @@ async def test_attribute_synchronization(
             ATTR_CURRENT_TEMPERATURE: 19.0,
             ATTR_MIN_TEMP: 16.0,
             ATTR_MAX_TEMP: 26.0,
-            "target_temp_step": 0.2,
+            ATTR_TARGET_TEMP_STEP: 0.2,
         },
     )
     await hass.async_block_till_done()
@@ -133,6 +133,6 @@ async def test_ai_change_no_override(
     state = hass.states.get("climate.learning_thermostat")
     # Temperature should NOT be synced to _attr_target_temperature if it's not a manual override
     # in the current implementation, we ONLY sync _attr_target_temperature on manual override detection.
-    # So it should remain at its previous value (default 21.0 in this case, coincidentally)
-    # Wait, default is 21.0. Let's check.
+    # So it should remain at its previous value (default 21.0 in this case)
+    assert state.attributes.get(ATTR_TEMPERATURE) == 21.0
     assert state.attributes.get("is_override_active") is False
