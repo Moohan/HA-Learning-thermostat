@@ -193,12 +193,11 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
             if (
                 old_state
                 and event.context.user_id is not None
-                and new_state.attributes.get(ATTR_TEMPERATURE)
-                != old_state.attributes.get(ATTR_TEMPERATURE)
+                and (new_temp := new_state.attributes.get(ATTR_TEMPERATURE)) is not None
+                and new_temp != old_state.attributes.get(ATTR_TEMPERATURE)
             ):
-                new_temp = new_state.attributes.get(ATTR_TEMPERATURE)
                 if new_temp is not None:
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         "%s: Manual change detected on %s. Setting override to %s%s",
                         self.name,
                         self._target_climate_entity,
