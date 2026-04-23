@@ -98,12 +98,13 @@ async def test_manual_override_from_target(
     assert state.attributes["is_override_active"] is False
 
     # Simulate manual change on target entity (with user_id)
+    # We use 22.0 because the default target temperature is 21.0
     context = Context(user_id="test_user")
     hass.states.async_set(
         target_entity_id,
         "heat",
         {
-            ATTR_TEMPERATURE: 21.0,
+            ATTR_TEMPERATURE: 22.0,
             ATTR_CURRENT_TEMPERATURE: 20.0,
         },
         context=context,
@@ -112,4 +113,4 @@ async def test_manual_override_from_target(
 
     state = hass.states.get("climate.learning_thermostat")
     assert state.attributes["is_override_active"] is True
-    assert state.attributes[ATTR_TEMPERATURE] == 21.0
+    assert state.attributes[ATTR_TEMPERATURE] == 22.0

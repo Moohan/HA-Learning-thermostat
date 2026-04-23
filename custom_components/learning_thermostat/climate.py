@@ -196,8 +196,12 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
             new_temp = new_state.attributes.get(ATTR_TEMPERATURE)
             old_temp = old_state.attributes.get(ATTR_TEMPERATURE)
 
-            if new_temp != old_temp and new_temp is not None:
-                _LOGGER.info(
+            if (
+                new_temp != old_temp
+                and new_temp is not None
+                and new_temp != self._attr_target_temperature
+            ):
+                _LOGGER.debug(
                     "%s: Detected manual temperature change on %s to %s. Activating override.",
                     self.name,
                     self._target_climate_entity,
