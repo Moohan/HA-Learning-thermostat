@@ -102,8 +102,14 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
 
         if self._attr_temperature_unit == UnitOfTemperature.FAHRENHEIT:
             self._attr_target_temperature = 70.0
+            self._attr_min_temp = 45.0
+            self._attr_max_temp = 95.0
+            self._attr_target_temperature_step = 1.0
         else:
             self._attr_target_temperature = 21.0
+            self._attr_min_temp = 7.0
+            self._attr_max_temp = 35.0
+            self._attr_target_temperature_step = 0.5
         self._attr_current_temperature = None
         self._attr_hvac_mode = HVACMode.OFF  # Default to OFF
         self._attr_preset_mode = PRESET_LEARNING_CONTROLLING
@@ -164,6 +170,11 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         """Update internal state from the target climate entity."""
         if state and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
             self._attr_current_temperature = state.attributes.get("current_temperature")
+            self._attr_min_temp = state.attributes.get("min_temp", self._attr_min_temp)
+            self._attr_max_temp = state.attributes.get("max_temp", self._attr_max_temp)
+            self._attr_target_temperature_step = state.attributes.get(
+                "target_temp_step", self._attr_target_temperature_step
+            )
             self.async_write_ha_state()
 
     @callback
