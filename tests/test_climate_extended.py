@@ -1,6 +1,5 @@
 """Extended tests for the Learning Thermostat climate platform."""
 from unittest.mock import patch, AsyncMock, MagicMock
-from datetime import timedelta
 import pytest
 
 from homeassistant.core import HomeAssistant, Context
@@ -8,11 +7,9 @@ from homeassistant.components.climate import (
     ATTR_TEMPERATURE,
     ATTR_CURRENT_TEMPERATURE,
     HVACMode,
-    ClimateEntityFeature,
 )
-from homeassistant.const import ATTR_ENTITY_ID, UnitOfTemperature
-from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
+from homeassistant.const import ATTR_ENTITY_ID
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
 @pytest.fixture
