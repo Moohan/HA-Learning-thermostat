@@ -102,8 +102,14 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
 
         if self._attr_temperature_unit == UnitOfTemperature.FAHRENHEIT:
             self._attr_target_temperature = 70.0
+            self._attr_min_temp = 45.0
+            self._attr_max_temp = 95.0
+            self._attr_target_temperature_step = 1.0
         else:
             self._attr_target_temperature = 21.0
+            self._attr_min_temp = 7.0
+            self._attr_max_temp = 35.0
+            self._attr_target_temperature_step = 0.5
         self._attr_current_temperature = None
         self._attr_hvac_mode = HVACMode.OFF  # Default to OFF
         self._attr_preset_mode = PRESET_LEARNING_CONTROLLING
@@ -139,6 +145,10 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
             self._attr_preset_mode = last_state.attributes.get(
                 "preset_mode", PRESET_LEARNING_CONTROLLING
             )
+            # Sync learning state with restored preset
+            self._data_collector.learning_enabled = (
+                self._attr_preset_mode == PRESET_LEARNING_CONTROLLING
+            )
 
         self._state_listener = async_track_state_change_event(
             self.hass,
@@ -149,6 +159,9 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         target_state = self.hass.states.get(self._target_climate_entity)
         if target_state:
             self._update_target_state(target_state)
+            target_temp = target_state.attributes.get(ATTR_TEMPERATURE)
+            if target_temp is not None:
+                self._attr_target_temperature = target_temp
 
         await self._async_update_prediction_task()
 
@@ -164,12 +177,43 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         """Update internal state from the target climate entity."""
         if state and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
             self._attr_current_temperature = state.attributes.get("current_temperature")
+            self._attr_min_temp = state.attributes.get("min_temp", self._attr_min_temp)
+            self._attr_max_temp = state.attributes.get("max_temp", self._attr_max_temp)
+            self._attr_target_temperature_step = state.attributes.get(
+                "target_temp_step", self._attr_target_temperature_step
+            )
             self.async_write_ha_state()
 
     @callback
     def _async_target_climate_state_listener(self, event):
         """Handle state changes for the target climate entity."""
-        self._update_target_state(event.data.get("new_state"))
+        new_state = event.data.get("new_state")
+        old_state = event.data.get("old_state")
+
+        self._update_target_state(new_state)
+
+        if not new_state or not old_state:
+            return
+
+        new_temp = new_state.attributes.get(ATTR_TEMPERATURE)
+        old_temp = old_state.attributes.get(ATTR_TEMPERATURE)
+
+        if new_temp is None or new_temp == old_temp:
+            return
+
+        if event.context.user_id is not None:
+            _LOGGER.info(
+                "%s: Manual temperature change detected on target entity: %s",
+                self.name,
+                new_temp,
+            )
+            self._attr_target_temperature = new_temp
+            self._is_override_active = True
+            self._override_end_time = dt_util.now() + self._override_duration
+            self.async_write_ha_state()
+        elif not self._is_override_active:
+            self._attr_target_temperature = new_temp
+            self.async_write_ha_state()
 
     @property
     def preset_mode(self):
@@ -234,6 +278,15 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
             _LOGGER.warning("Unsupported preset mode: %s", preset_mode)
             return
         self._attr_preset_mode = preset_mode
+        self._data_collector.learning_enabled = (
+            preset_mode == PRESET_LEARNING_CONTROLLING
+        )
+        _LOGGER.info(
+            "%s: Preset mode set to %s (Learning enabled: %s)",
+            self.name,
+            preset_mode,
+            self._data_collector.learning_enabled,
+        )
         self.async_write_ha_state()
 
     async def _async_update_prediction_task(self):
