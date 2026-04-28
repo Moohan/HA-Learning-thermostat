@@ -37,6 +37,7 @@ class DataCollector:
         self._fieldnames = ["timestamp"] + self._feature_names + ["target_temperature"]
         self._unsubscribe = None
         self._data_points_collected = 0
+        self.learning_enabled = True
 
     async def async_setup(self):
         """Set up the data collector and listeners."""
@@ -70,7 +71,12 @@ class DataCollector:
         old_temp = old_state.attributes.get(ATTR_TEMPERATURE)
         new_temp = new_state.attributes.get(ATTR_TEMPERATURE)
 
-        if old_temp != new_temp and new_temp is not None and event.context.user_id is not None:
+        if (
+            self.learning_enabled
+            and old_temp != new_temp
+            and new_temp is not None
+            and event.context.user_id is not None
+        ):
             _LOGGER.info(
                 "Initial learning: Target temp for %s changed to %s. Collecting data.",
                 self._climate_entity_id,
