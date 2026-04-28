@@ -102,8 +102,14 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
 
         if self._attr_temperature_unit == UnitOfTemperature.FAHRENHEIT:
             self._attr_target_temperature = 70.0
+            self._attr_min_temp = 45.0
+            self._attr_max_temp = 95.0
+            self._attr_target_temperature_step = 1.0
         else:
             self._attr_target_temperature = 21.0
+            self._attr_min_temp = 7.0
+            self._attr_max_temp = 35.0
+            self._attr_target_temperature_step = 0.5
         self._attr_current_temperature = None
         self._attr_hvac_mode = HVACMode.OFF  # Default to OFF
         self._attr_preset_mode = PRESET_LEARNING_CONTROLLING
@@ -140,6 +146,11 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
                 "preset_mode", PRESET_LEARNING_CONTROLLING
             )
 
+        # Sync learning mode
+        self._data_collector.learning_enabled = (
+            self._attr_preset_mode == PRESET_LEARNING_CONTROLLING
+        )
+
         self._state_listener = async_track_state_change_event(
             self.hass,
             [self._target_climate_entity],
@@ -164,12 +175,37 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
         """Update internal state from the target climate entity."""
         if state and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
             self._attr_current_temperature = state.attributes.get("current_temperature")
+            self._attr_min_temp = state.attributes.get("min_temp", self._attr_min_temp)
+            self._attr_max_temp = state.attributes.get("max_temp", self._attr_max_temp)
+            self._attr_target_temperature_step = state.attributes.get(
+                "target_temp_step", self._attr_target_temperature_step
+            )
             self.async_write_ha_state()
 
     @callback
     def _async_target_climate_state_listener(self, event):
         """Handle state changes for the target climate entity."""
-        self._update_target_state(event.data.get("new_state"))
+        new_state = event.data.get("new_state")
+        old_state = event.data.get("old_state")
+
+        if (
+            new_state
+            and old_state
+            and event.context.user_id is not None
+            and new_state.attributes.get(ATTR_TEMPERATURE) is not None
+            and new_state.attributes.get(ATTR_TEMPERATURE)
+            != old_state.attributes.get(ATTR_TEMPERATURE)
+        ):
+            # Manual change on target entity - sync and start override
+            _LOGGER.debug(
+                "%s: Manual change detected on target entity. Starting override.",
+                self.name,
+            )
+            self._attr_target_temperature = new_state.attributes.get(ATTR_TEMPERATURE)
+            self._is_override_active = True
+            self._override_end_time = dt_util.now() + self._override_duration
+
+        self._update_target_state(new_state)
 
     @property
     def preset_mode(self):
@@ -234,6 +270,9 @@ class LearningThermostat(ClimateEntity, RestoreEntity):
             _LOGGER.warning("Unsupported preset mode: %s", preset_mode)
             return
         self._attr_preset_mode = preset_mode
+        self._data_collector.learning_enabled = (
+            preset_mode == PRESET_LEARNING_CONTROLLING
+        )
         self.async_write_ha_state()
 
     async def _async_update_prediction_task(self):
